@@ -1,7 +1,10 @@
 import * as vscode from "vscode";
 import { TreeSitterManager } from "./treeSitterManager";
+import { JavaMapperCodelensProvider } from "./codelensProvider";
+import { JavaMethodInfo } from "./javaAnalyzer";
 
 let treeSitterManager: TreeSitterManager;
+let javaMapperCodelensProvider: JavaMapperCodelensProvider;
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "mybatis-next" is now active!');
@@ -10,6 +13,23 @@ export async function activate(context: vscode.ExtensionContext) {
   treeSitterManager = new TreeSitterManager();
   await treeSitterManager.initialize(context);
 
+  javaMapperCodelensProvider = new JavaMapperCodelensProvider(
+    treeSitterManager
+  );
+  vscode.languages.registerCodeLensProvider(
+    { language: "java" },
+    javaMapperCodelensProvider
+  );
+
+  registerCommands(context);
+}
+
+// This method is called when your extension is deactivated
+export function deactivate() {
+  // Clean up resources if needed
+}
+
+function registerCommands(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
     "mybatis-next.helloWorld",
     () => {
@@ -21,37 +41,47 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // 显示方法信息的命令
+  const showMethodInfoCommand = vscode.commands.registerCommand(
+    "mybatis-next.showMethodInfo",
+    (methodInfo: JavaMethodInfo) => {
+      const modifiers = [];
+      if (methodInfo.isPublic) {
+        modifiers.push("public");
+      }
+      if (methodInfo.isPrivate) {
+        modifiers.push("private");
+      }
+      if (methodInfo.isProtected) {
+        modifiers.push("protected");
+      }
+      if (methodInfo.isStatic) {
+        modifiers.push("static");
+      }
+      if (methodInfo.isAbstract) {
+        modifiers.push("abstract");
+      }
+
+      const message = [
+        `方法名: ${methodInfo.name}`,
+        `返回类型: ${methodInfo.returnType || "void"}`,
+        `参数: ${methodInfo.parameters.join(", ") || "无"}`,
+        `修饰符: ${modifiers.join(" ") || "default"}`,
+        `位置: 第${methodInfo.startLine}行, 第${methodInfo.startColumn}列`,
+        `结束位置: 第${methodInfo.endLine}行, 第${methodInfo.endColumn}列`,
+      ].join("\n");
+
+      vscode.window.showInformationMessage(message);
+    }
+  );
+
   // Add command to test parsing
   const parseCommand = vscode.commands.registerCommand(
     "mybatis-next.testParse",
     () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showErrorMessage("No active editor");
-        return;
-      }
-
-      const document = editor.document;
-      const content = document.getText();
-      
-      if (document.languageId === 'java') {
-        const tree = treeSitterManager.parseJava(content);
-        vscode.window.showInformationMessage(`Java file parsed: ${tree?.rootNode.type}`);
-      } else if (document.languageId === 'xml') {
-        const tree = treeSitterManager.parseXml(content);
-        vscode.window.showInformationMessage(`XML file parsed: ${tree?.rootNode.type}`);
-      } else {
-        vscode.window.showWarningMessage("Unsupported file type for parsing");
-      }
+      javaMapperCodelensProvider.fire();
     }
   );
 
-  context.subscriptions.push(disposable, parseCommand);
-}
-
-// This method is called when your extension is deactivated
-export function deactivate() {}
-
-export function getTreeSitterManager(): TreeSitterManager {
-  return treeSitterManager;
+  context.subscriptions.push(disposable, showMethodInfoCommand, parseCommand);
 }

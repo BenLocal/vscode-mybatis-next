@@ -26,7 +26,7 @@ export class ParserManager {
     try {
       const wasmPath = vscode.Uri.joinPath(
         context.extensionUri,
-        "dist",
+        "wasm",
         "tree-sitter.wasm"
       );
       await treeSitter.Parser.init(wasmPath);
@@ -35,8 +35,7 @@ export class ParserManager {
       // Load Java language
       const javaWasm = vscode.Uri.joinPath(
         context.extensionUri,
-        "node_modules",
-        "tree-sitter-java",
+        "wasm",
         "tree-sitter-java.wasm"
       );
       this.javaLanguage = await treeSitter.Language.load(javaWasm.fsPath);

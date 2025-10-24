@@ -50,7 +50,11 @@ const extensionConfig = {
       patterns: [
         {
           from: "node_modules/web-tree-sitter/tree-sitter.wasm",
-          to: "tree-sitter.wasm",
+          to: "../wasm/tree-sitter.wasm",
+        },
+        {
+          from: "node_modules/tree-sitter-java/tree-sitter-java.wasm",
+          to: "../wasm/tree-sitter-java.wasm",
         },
       ],
     }),

@@ -5,6 +5,7 @@ import {
   XmlMapperCodelensProvider,
 } from "./codelensProvider";
 import { JavaMethodInfo } from "./javaAnalyzer";
+import { scanWorkspaceFiles } from "./scanWorkspace";
 
 let parserManager: ParserManager;
 let javaMapperCodelensProvider: JavaMapperCodelensProvider;
@@ -29,6 +30,8 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   registerCommands(context);
+
+  await scanWorkspaceFiles();
 }
 
 // This method is called when your extension is deactivated

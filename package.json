@@ -14,6 +14,10 @@
     "workspaceContains:*.xml"
   ],
   "main": "./dist/extension.js",
+  "files": [
+    "dist/**/*",
+    "wasm/**/*"
+  ],
   "contributes": {
     "commands": [
       {
@@ -48,14 +52,16 @@
     "copy-webpack-plugin": "^13.0.1",
     "eslint": "^9.36.0",
     "tree-sitter-cli": "^0.25.10",
+    "tree-sitter-java": "^0.23.5",
     "ts-loader": "^9.5.4",
     "typescript": "^5.9.3",
     "webpack": "^5.102.0",
-    "webpack-cli": "^6.0.1"
+    "webpack-cli": "^6.0.1",
+    "@tree-sitter-grammars/tree-sitter-xml": "^0.7.0"
   },
   "dependencies": {
     "fast-xml-parser": "^5.3.0",
-    "tree-sitter-java": "^0.23.5",
+    "p-limit": "^7.2.0",
     "web-tree-sitter": "^0.25.10"
   }
 }

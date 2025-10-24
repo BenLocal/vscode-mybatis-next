@@ -1,24 +1,31 @@
 import * as vscode from "vscode";
-import { TreeSitterManager } from "./treeSitterManager";
-import { JavaMapperCodelensProvider } from "./codelensProvider";
+import { ParserManager } from "./parserManager";
+import {
+  JavaMapperCodelensProvider,
+  XmlMapperCodelensProvider,
+} from "./codelensProvider";
 import { JavaMethodInfo } from "./javaAnalyzer";
 
-let treeSitterManager: TreeSitterManager;
+let parserManager: ParserManager;
 let javaMapperCodelensProvider: JavaMapperCodelensProvider;
+let xmlMapperCodelensProvider: XmlMapperCodelensProvider;
 
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "mybatis-next" is now active!');
 
-  // Initialize Tree-sitter
-  treeSitterManager = new TreeSitterManager();
-  await treeSitterManager.initialize(context);
+  // Initialize parser manager
+  parserManager = new ParserManager();
+  await parserManager.initialize(context);
 
-  javaMapperCodelensProvider = new JavaMapperCodelensProvider(
-    treeSitterManager
-  );
+  javaMapperCodelensProvider = new JavaMapperCodelensProvider(parserManager);
   vscode.languages.registerCodeLensProvider(
     { language: "java" },
     javaMapperCodelensProvider
+  );
+  xmlMapperCodelensProvider = new XmlMapperCodelensProvider(parserManager);
+  vscode.languages.registerCodeLensProvider(
+    { language: "xml" },
+    xmlMapperCodelensProvider
   );
 
   registerCommands(context);

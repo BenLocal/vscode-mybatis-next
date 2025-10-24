@@ -21,10 +21,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "mybatis-next.helloWorld",
-        "title": "Mybatis.Next: Hello World"
-      },
-      {
         "command": "mybatis-next.testParse",
         "title": "Mybatis.Next: testParse"
       }

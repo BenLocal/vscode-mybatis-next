@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { MappersStore } from "./mappersStore";
 
 export async function scanWorkspaceFiles() {
   const { default: pLimit } = await import("p-limit");
@@ -12,7 +13,7 @@ export async function scanWorkspaceFiles() {
       limit(async () => {
         try {
           const document = await vscode.workspace.openTextDocument(file);
-          const content = document.getText();
+          MappersStore.getInstance().addXmlFile(file, document);
         } catch (error) {
           console.error(`Error parsing XML file ${file.fsPath}:`, error);
         }
@@ -22,7 +23,7 @@ export async function scanWorkspaceFiles() {
       limit(async () => {
         try {
           const document = await vscode.workspace.openTextDocument(file);
-          const content = document.getText();
+          MappersStore.getInstance().addJavaFile(file, document);
         } catch (error) {
           console.error(`Error parsing Java file ${file.fsPath}:`, error);
         }

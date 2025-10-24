@@ -1,4 +1,3 @@
-import * as treeSitter from "web-tree-sitter";
 import { FastXmlParseResult } from "./parserManager";
 
 export interface MyBatisMapperInfo {

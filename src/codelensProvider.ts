@@ -9,12 +9,12 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
   public readonly onDidChangeCodeLenses: vscode.Event<void> =
     this._onDidChangeCodeLenses.event;
 
-  provideCodeLenses(
+  async provideCodeLenses(
     document: vscode.TextDocument,
     _token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.CodeLens[]> {
+  ): Promise<vscode.CodeLens[]> {
     const uri = document.uri;
-    const info = MappersStore.getInstance().addJavaFile(uri, document);
+    const info = await MappersStore.getInstance().addJavaFile(uri, document);
     if (!info) {
       return [];
     }
@@ -78,12 +78,12 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
   public readonly onDidChangeCodeLenses: vscode.Event<void> =
     this._onDidChangeCodeLenses.event;
 
-  provideCodeLenses(
+  async provideCodeLenses(
     document: vscode.TextDocument,
     _token: vscode.CancellationToken
-  ): vscode.ProviderResult<vscode.CodeLens[]> {
+  ): Promise<vscode.CodeLens[]> {
     const uri = document.uri;
-    const info = MappersStore.getInstance().addXmlFile(uri, document);
+    const info = await MappersStore.getInstance().addXmlFile(uri, document);
     if (!info) {
       return [];
     }

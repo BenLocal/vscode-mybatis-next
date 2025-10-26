@@ -24,12 +24,11 @@ export class ParserManager {
 
   async initializeJavaParser(context: vscode.ExtensionContext): Promise<void> {
     try {
-      const wasmPath = vscode.Uri.joinPath(
-        context.extensionUri,
-        "wasm",
-        "tree-sitter.wasm"
-      );
-      await treeSitter.Parser.init(wasmPath);
+      await treeSitter.Parser.init({
+        locateFile: (path: string, prefix: string) => {
+          return vscode.Uri.joinPath(context.extensionUri, "wasm", path).fsPath;
+        },
+      });
       this.javaParser = new treeSitter.Parser();
 
       // Load Java language

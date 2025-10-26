@@ -3,17 +3,20 @@ import { FastXmlParseResult, ParserManager } from "./parserManager";
 import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
 import * as treeSitter from "web-tree-sitter";
+import * as crypto from "crypto";
 
 export interface JavaMapperInfo {
   file: vscode.Uri | string;
   tree: treeSitter.Tree;
   info: JavaClassInfo;
+  context_hash: string;
 }
 
 export interface XmlMapperInfo {
   file: vscode.Uri | string;
   fastResult: FastXmlParseResult;
   info: MyBatisMapperInfo;
+  context_hash: string;
 }
 
 export class MappersStore {
@@ -21,6 +24,8 @@ export class MappersStore {
 
   private readonly _xmlFiles: Map<string, XmlMapperInfo> = new Map();
   private readonly _javaFiles: Map<string, JavaMapperInfo> = new Map();
+  // key is java file path, value is best xml file path
+  private readonly _bestMapper: Map<string, string> = new Map();
   private _parserManager: ParserManager | null = null;
 
   private constructor() {
@@ -42,14 +47,24 @@ export class MappersStore {
     return MappersStore.instance;
   }
 
-  public addXmlFile(
+  public async addXmlFile(
     file: vscode.Uri | string,
     doc: vscode.TextDocument
-  ): XmlMapperInfo | null {
+  ): Promise<XmlMapperInfo | null> {
     if (doc.languageId !== "xml") {
       return null;
     }
     const content = doc.getText();
+    const contextHash = await this.calculateContextHash(content);
+    // check if the file is already in the _xmlFiles
+    const filePath = typeof file === "string" ? file : file.fsPath;
+    if (this._xmlFiles.has(filePath)) {
+      const xmlMapperInfo = this._xmlFiles.get(filePath)!;
+      if (xmlMapperInfo.context_hash === contextHash) {
+        return xmlMapperInfo;
+      }
+    }
+
     const result = this._parserManager!.parseXml(content);
     if (!this.isMybatisMapperXmlFile(result)) {
       return null;
@@ -62,8 +77,9 @@ export class MappersStore {
       file,
       fastResult: result!,
       info: info,
+      context_hash: contextHash,
     };
-    const filePath = typeof file === "string" ? file : file.fsPath;
+
     this._xmlFiles.set(filePath, xmlMapperInfo);
     return xmlMapperInfo;
   }
@@ -81,14 +97,24 @@ export class MappersStore {
     return true;
   }
 
-  public addJavaFile(
+  public async addJavaFile(
     file: vscode.Uri,
     doc: vscode.TextDocument
-  ): JavaMapperInfo | null {
+  ): Promise<JavaMapperInfo | null> {
     if (doc.languageId !== "java") {
       return null;
     }
+
     const content = doc.getText();
+    const filePath = typeof file === "string" ? file : file.fsPath;
+    const contextHash = await this.calculateContextHash(content);
+
+    if (this._javaFiles.has(filePath)) {
+      const javaMapperInfo = this._javaFiles.get(filePath)!;
+      if (javaMapperInfo.context_hash === contextHash) {
+        return javaMapperInfo;
+      }
+    }
     const result = this._parserManager!.parseJava(content);
     if (!result) {
       return null;
@@ -101,9 +127,9 @@ export class MappersStore {
       file,
       tree: result,
       info: info!,
+      context_hash: contextHash,
     };
 
-    const filePath = typeof file === "string" ? file : file.fsPath;
     this._javaFiles.set(filePath, javaMapperInfo);
     return javaMapperInfo;
   }
@@ -141,5 +167,14 @@ export class MappersStore {
       return null;
     }
     return files[0];
+  }
+
+  private async calculateContextHash(content: string): Promise<string> {
+    const hashBuffer = await crypto.webcrypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(content)
+    );
+    const hash = Buffer.from(hashBuffer).toString("hex");
+    return hash;
   }
 }

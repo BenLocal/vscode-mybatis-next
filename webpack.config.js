@@ -56,6 +56,10 @@ const extensionConfig = {
           from: "node_modules/tree-sitter-java/tree-sitter-java.wasm",
           to: "../wasm/tree-sitter-java.wasm",
         },
+        {
+          from: "node_modules/@tree-sitter-grammars/tree-sitter-xml/xml/tree-sitter-xml.wasm",
+          to: "../wasm/tree-sitter-xml.wasm",
+        },
       ],
     }),
   ],

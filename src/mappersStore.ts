@@ -4,6 +4,8 @@ import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
 import * as treeSitter from "web-tree-sitter";
 import * as crypto from "crypto";
+import { MyBatisUtils } from "./mybatisUtils";
+import { BiMap } from "@rimbu/bimap";
 
 export interface JavaMapperInfo {
   file: vscode.Uri | string;
@@ -25,7 +27,10 @@ export class MappersStore {
   private readonly _xmlFiles: Map<string, XmlMapperInfo> = new Map();
   private readonly _javaFiles: Map<string, JavaMapperInfo> = new Map();
   // key is java file path, value is best xml file path
-  private readonly _bestMapper: Map<string, string> = new Map();
+  private readonly _bestMapper: BiMap<string, string> = BiMap.empty<
+    string,
+    string
+  >();
   private _parserManager: ParserManager | null = null;
 
   private constructor() {
@@ -57,7 +62,7 @@ export class MappersStore {
     const content = doc.getText();
     const contextHash = await this.calculateContextHash(content);
     // check if the file is already in the _xmlFiles
-    const filePath = typeof file === "string" ? file : file.fsPath;
+    const filePath = MyBatisUtils.getFilePath(file);
     if (this._xmlFiles.has(filePath)) {
       const xmlMapperInfo = this._xmlFiles.get(filePath)!;
       if (xmlMapperInfo.context_hash === contextHash) {
@@ -106,7 +111,7 @@ export class MappersStore {
     }
 
     const content = doc.getText();
-    const filePath = typeof file === "string" ? file : file.fsPath;
+    const filePath = MyBatisUtils.getFilePath(file);
     const contextHash = await this.calculateContextHash(content);
 
     if (this._javaFiles.has(filePath)) {
@@ -157,16 +162,54 @@ export class MappersStore {
   }
 
   public selectBestXmlFile(
-    methodName: string,
+    javaFilePath: string,
     namespace: string
   ): XmlMapperInfo | null {
+    if (this._bestMapper.hasKey(javaFilePath)) {
+      const xmlfile = this._bestMapper.getKey(javaFilePath);
+      if (xmlfile && this._xmlFiles.has(xmlfile)) {
+        return this._xmlFiles.get(xmlfile)!;
+      }
+    }
+
     let files: XmlMapperInfo[] = Array.from(this._xmlFiles.values()).filter(
       (xmlFile: XmlMapperInfo) => xmlFile.info.namespace === namespace
     );
     if (files.length <= 0) {
       return null;
     }
-    return files[0];
+    const bestXmlFile = files[0];
+    this._bestMapper.set(
+      javaFilePath,
+      MyBatisUtils.getFilePath(bestXmlFile.file)
+    );
+    return bestXmlFile;
+  }
+
+  public selectBestJavaFile(
+    xmlFilePath: string,
+    namespace: string
+  ): JavaMapperInfo | null {
+    if (this._bestMapper.hasValue(xmlFilePath)) {
+      const javaFilePath = this._bestMapper.getValue(xmlFilePath);
+      if (javaFilePath && this._javaFiles.has(javaFilePath)) {
+        return this._javaFiles.get(javaFilePath)!;
+      }
+    }
+    let files: JavaMapperInfo[] = Array.from(this._javaFiles.values()).filter(
+      (javaFile: JavaMapperInfo) =>
+        MyBatisUtils.getMapperNamespace(javaFile.info) === namespace
+    );
+    if (files.length <= 0) {
+      return null;
+    }
+
+    const bestJavaFile = files[0];
+    this._bestMapper.set(
+      MyBatisUtils.getFilePath(bestJavaFile.file),
+      xmlFilePath
+    );
+    return bestJavaFile;
   }
 
   private async calculateContextHash(content: string): Promise<string> {

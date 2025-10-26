@@ -16,6 +16,20 @@ export class ParserManager {
   private javaLanguage: treeSitter.Language | null = null;
   private xmlParser: fastXmlParser.XMLParser | null = null;
   private xmlMetaDataSymbol: Symbol | null = null;
+  private xmlTreeParser: treeSitter.Parser | null = null;
+  private xmlTreeLanguage: treeSitter.Language | null = null;
+
+  private readonly _xmlParserType: string = "fast-xml-parser";
+
+  constructor(xmlParserType: string = "fast-xml-parser") {
+    if (
+      xmlParserType !== "fast-xml-parser" &&
+      xmlParserType !== "tree-sitter"
+    ) {
+      throw new Error("Invalid XML parser type");
+    }
+    this._xmlParserType = xmlParserType;
+  }
 
   async initialize(context: vscode.ExtensionContext): Promise<void> {
     await this.initializeJavaParser(context);
@@ -47,14 +61,28 @@ export class ParserManager {
 
   async initializeXmlParser(context: vscode.ExtensionContext): Promise<void> {
     try {
-      const options = {
-        ignoreAttributes: false,
-        attributeNamePrefix: "@_",
-        textNodeName: "#text",
-        captureMetaData: true,
-      };
-      this.xmlParser = new fastXmlParser.XMLParser(options);
-      this.xmlMetaDataSymbol = fastXmlParser.XMLParser.getMetaDataSymbol();
+      if (this._xmlParserType === "fast-xml-parser") {
+        const options = {
+          ignoreAttributes: false,
+          attributeNamePrefix: "@_",
+          textNodeName: "#text",
+          captureMetaData: true,
+        };
+        this.xmlParser = new fastXmlParser.XMLParser(options);
+        this.xmlMetaDataSymbol = fastXmlParser.XMLParser.getMetaDataSymbol();
+      } else if (this._xmlParserType === "tree-sitter") {
+        this.xmlTreeParser = new treeSitter.Parser();
+        const xmlTreeWasm = vscode.Uri.joinPath(
+          context.extensionUri,
+          "wasm",
+          "tree-sitter-xml.wasm"
+        );
+        this.xmlTreeLanguage = await treeSitter.Language.load(
+          xmlTreeWasm.fsPath
+        );
+        this.xmlTreeParser.setLanguage(this.xmlTreeLanguage);
+        console.log("Tree-sitter XML parser initialized successfully");
+      }
     } catch (error) {
       console.error("Failed to initialize XML parser:", error);
     }

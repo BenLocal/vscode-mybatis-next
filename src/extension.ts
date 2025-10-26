@@ -7,6 +7,7 @@ import {
 import { scanWorkspaceFiles } from "./scanWorkspace";
 import { MappersStore } from "./mappersStore";
 import { registerJava2XmlCommands } from "./java2XmlCommand";
+import { registerXml2JavaCommands } from "./xml2JavaCommand";
 
 let parserManager: ParserManager;
 let javaMapperCodelensProvider: JavaMapperCodelensProvider;
@@ -54,4 +55,5 @@ function registerCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(parseCommand);
 
   registerJava2XmlCommands(context);
+  registerXml2JavaCommands(context);
 }

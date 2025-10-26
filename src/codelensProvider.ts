@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
-import { JavaClassInfo } from "./javaAnalyzer";
+import { MyBatisUtils } from "./mybatisUtils";
 
 export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses: vscode.EventEmitter<void> =
@@ -14,6 +14,7 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
     _token: vscode.CancellationToken
   ): Promise<vscode.CodeLens[]> {
     const uri = document.uri;
+    const javaFilePath = MyBatisUtils.getFilePath(uri);
     const info = await MappersStore.getInstance().addJavaFile(uri, document);
     if (!info) {
       return [];
@@ -36,27 +37,22 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
       const range = new vscode.Range(startPosition, endPosition);
 
       const codeLens = new vscode.CodeLens(range, {
-        title: `🔧 ${method.name}(${method.parameters.join(", ")})${
-          method.returnType ? ": " + method.returnType : ""
-        }`,
-        tooltip: `方法: ${method.name}\n行号: ${method.startLine}\n参数: ${
-          method.parameters.join(", ") || "无"
+        title: `🚀  Xml Mapper(${method.name})`,
+        tooltip: `method: ${method.name}\nline: ${method.startLine}\nargs: ${
+          method.parameters.join(", ") || "empty"
         }`,
         command: "mybatis-next.java2Xml",
-        arguments: [method.name, this.getMapperNamespace(classInfo)],
+        arguments: [
+          javaFilePath,
+          MyBatisUtils.getMapperNamespace(classInfo),
+          method.name,
+        ],
       });
 
       codeLenses.push(codeLens);
     }
 
     return codeLenses;
-  }
-
-  private getMapperNamespace(classInfo: JavaClassInfo): string {
-    if (!classInfo.packageName) {
-      return classInfo.className;
-    }
-    return classInfo.packageName + "." + classInfo.className;
   }
 
   resolveCodeLens?(
@@ -83,6 +79,7 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
     _token: vscode.CancellationToken
   ): Promise<vscode.CodeLens[]> {
     const uri = document.uri;
+    const xmlFilePath = MyBatisUtils.getFilePath(uri);
     const info = await MappersStore.getInstance().addXmlFile(uri, document);
     if (!info) {
       return [];
@@ -104,10 +101,10 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
       const range = new vscode.Range(startPosition, endPosition);
 
       const codeLens = new vscode.CodeLens(range, {
-        title: `🔧 ${sqlStatement.id}`,
+        title: `🚀 Java Mapper(${sqlStatement.id})`,
         tooltip: `SQL: ${sqlStatement.id}`,
-        command: "mybatis-next.showSqlInfo",
-        arguments: [sqlStatement],
+        command: "mybatis-next.xml2Java",
+        arguments: [xmlFilePath, mapperInfo.namespace, sqlStatement.id],
       });
 
       codeLenses.push(codeLens);

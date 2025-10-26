@@ -1,22 +1,39 @@
 {
   "name": "mybatis-next",
   "displayName": "mybatis-next",
-  "description": "mybatis helper",
-  "version": "0.0.1",
+  "description": "MyBatis helper for VSCode",
+  "version": "0.0.1-alpha1",
   "engines": {
     "vscode": "^1.73.0"
   },
   "categories": [
     "Other"
   ],
+  "keywords": [
+		"MyBatis",
+		"Mapper"
+	],
+  "bugs": {
+		"url": "https://github.com/BenLocal/vscode-mybatis-next/issues",
+		"email": "807629978@qq.com"
+	},
+  "homepage": "https://github.com/BenLocal/vscode-mybatis-next/blob/master/README.md",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/BenLocal/vscode-mybatis-next.git"
+	},
   "activationEvents": [
     "onLanguage:java",
     "workspaceContains:*.xml"
   ],
   "main": "./dist/extension.js",
+  "icon": "icon.png",
   "files": [
     "dist/**/*",
-    "wasm/**/*"
+    "wasm/**/*",
+    "README.md",
+    "LICENSE.md",
+    "icon.png"
   ],
   "contributes": {
     "commands": [
@@ -36,13 +53,14 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
-    "build-xml-grammar": "cd node_modules/@tree-sitter-grammars/tree-sitter-xml/xml && npx tree-sitter build --wasm"
+    "build-xml-grammar": "cd node_modules/@tree-sitter-grammars/tree-sitter-xml/xml && npx tree-sitter build --wasm",
+    "vsix": "npm install -g vsce && vsce package"
   },
   "devDependencies": {
     "@tree-sitter-grammars/tree-sitter-xml": "^0.7.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "@types/vscode": "^1.105.0",
+    "@types/vscode": "^1.73.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
     "@vscode/test-cli": "^0.0.11",

@@ -132,7 +132,7 @@ async function jumpToXmlStartPosition(javaFilePath: string, namespace: string) {
     namespace
   );
   if (!xmlFile) {
-    // try to add xml file
+    await promptToCreateXmlFile(javaFilePath, namespace);
     return;
   }
   const fileUri = MyBatisUtils.getFilePath(xmlFile.file);
@@ -140,4 +140,93 @@ async function jumpToXmlStartPosition(javaFilePath: string, namespace: string) {
   const xmlEditor = await vscode.window.showTextDocument(xmlDocument);
   const startPosition = new vscode.Position(0, 0);
   await VscodeUtils.ensurePositionVisible(xmlEditor, startPosition);
+}
+
+async function promptToCreateXmlFile(javaFilePath: string, namespace: string) {
+  const message = `No XML mapper found for namespace "${namespace}". Create new XML mapper file?`;
+  const action = await vscode.window.showInformationMessage(
+    message,
+    'Create XML File',
+    'Cancel'
+  );
+
+  if (action === 'Create XML File') {
+    await createNewXmlMapperFile(javaFilePath, namespace);
+  }
+}
+
+async function createNewXmlMapperFile(javaFilePath: string, namespace: string) {
+  try {
+    const folderUris = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: 'Select Folder',
+      title: 'Select folder for XML mapper file'
+    });
+
+    if (!folderUris || folderUris.length === 0) {
+      return;
+    }
+    const selectedFolder = folderUris[0];
+
+    const fileName = await vscode.window.showInputBox({
+      prompt: 'Enter XML mapper file name',
+      placeHolder: 'e.g., UserMapper.xml',
+      value: `${namespace.split('.').pop()}Mapper.xml`,
+      validateInput: (value) => {
+        if (!value) {
+          return 'Please enter a file name';
+        }
+        if (!value.endsWith('.xml')) {
+          return 'File must have .xml extension';
+        }
+        return null;
+      }
+    });
+
+    if (!fileName) {
+      return;
+    }
+    const fileUri = vscode.Uri.joinPath(selectedFolder, fileName);
+    try {
+      await vscode.workspace.fs.stat(fileUri);
+      const overwrite = await vscode.window.showWarningMessage(
+        `File ${fileName} already exists. Overwrite?`,
+        'Overwrite',
+        'Cancel'
+      );
+      if (overwrite !== 'Overwrite') {
+        return;
+      }
+    } catch (error) {
+      // 文件不存在，继续创建
+    }
+
+    // 生成完整的XML mapper模板
+    const xmlContent = generateCompleteXmlMapperTemplate(namespace);
+
+    // 创建文件并写入内容
+    await vscode.workspace.fs.writeFile(fileUri, Buffer.from(xmlContent, 'utf8'));
+
+    // 打开新创建的文件
+    const document = await vscode.workspace.openTextDocument(fileUri);
+    const editor = await vscode.window.showTextDocument(document);
+    const startPosition = new vscode.Position(0, 0);
+    await VscodeUtils.ensurePositionVisible(editor, startPosition);
+
+    // 刷新MappersStore以包含新文件
+    await MappersStore.getInstance().addXmlFile(fileUri, document);
+  } catch (error) {
+    console.error('Error creating XML mapper file:', error);
+    vscode.window.showErrorMessage(`Failed to create XML mapper file: ${error}`);
+  }
+}
+
+function generateCompleteXmlMapperTemplate(namespace: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="${namespace}">
+
+</mapper>`;
 }

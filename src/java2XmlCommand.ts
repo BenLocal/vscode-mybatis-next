@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
 import { MyBatisUtils } from "./mybatisUtils";
 import { VscodeUtils } from "./vscodeUtils";
+import { OutputLogger } from "./outputLogs";
 
 export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
@@ -44,41 +45,55 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
   context.subscriptions.push(disposable);
 }
 
-async function promptToAddXmlContent(editor: vscode.TextEditor, methodName: string, namespace: string) {
+async function promptToAddXmlContent(
+  editor: vscode.TextEditor,
+  methodName: string,
+  namespace: string
+) {
   // 显示信息提示
   const message = `Method "${methodName}" not found in XML mappings.Add XML content ?`;
   const action = await vscode.window.showInformationMessage(
     message,
-    'Add XML Content',
-    'Cancel'
+    "Add XML Content",
+    "Cancel"
   );
-  if (action === 'Add XML Content') {
+  if (action === "Add XML Content") {
     await addXmlContent(editor, methodName, namespace);
   }
 
-  async function addXmlContent(editor: vscode.TextEditor, methodName: string, namespace: string) {
+  async function addXmlContent(
+    editor: vscode.TextEditor,
+    methodName: string,
+    namespace: string
+  ) {
     const xmlTemplate = generateXmlTemplate(methodName);
     const mapperEndPosition = findBestInsertPosition(editor.document);
 
     if (mapperEndPosition) {
-      await editor.edit(editBuilder => {
+      await editor.edit((editBuilder) => {
         editBuilder.insert(mapperEndPosition, xmlTemplate);
       });
 
-      const newPosition = new vscode.Position(mapperEndPosition.line, mapperEndPosition.character);
+      const newPosition = new vscode.Position(
+        mapperEndPosition.line,
+        mapperEndPosition.character
+      );
       await VscodeUtils.ensurePositionVisible(editor, newPosition);
 
       const endPosition = new vscode.Position(
-        mapperEndPosition.line + xmlTemplate.split('\n').length - 1,
-        xmlTemplate.split('\n').pop()?.length || 0
+        mapperEndPosition.line + xmlTemplate.split("\n").length - 1,
+        xmlTemplate.split("\n").pop()?.length || 0
       );
       editor.selection = new vscode.Selection(mapperEndPosition, endPosition);
     } else {
       const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
-      const endPosition = new vscode.Position(lastLine.lineNumber, lastLine.text.length);
+      const endPosition = new vscode.Position(
+        lastLine.lineNumber,
+        lastLine.text.length
+      );
 
-      await editor.edit(editBuilder => {
-        editBuilder.insert(endPosition, '\n' + xmlTemplate);
+      await editor.edit((editBuilder) => {
+        editBuilder.insert(endPosition, "\n" + xmlTemplate);
       });
 
       const newPosition = new vscode.Position(endPosition.line + 1, 0);
@@ -88,19 +103,34 @@ async function promptToAddXmlContent(editor: vscode.TextEditor, methodName: stri
 
   function generateXmlTemplate(methodName: string): string {
     const methodNameLower = methodName.toLowerCase();
-    if (methodNameLower.startsWith('select') || methodNameLower.startsWith('get') || methodNameLower.startsWith('find')) {
+    if (
+      methodNameLower.startsWith("select") ||
+      methodNameLower.startsWith("get") ||
+      methodNameLower.startsWith("find")
+    ) {
       return `    <select id = "${methodName}">
     </select>
 `;
-    } else if (methodNameLower.startsWith('insert') || methodNameLower.startsWith('add') || methodNameLower.startsWith('create')) {
+    } else if (
+      methodNameLower.startsWith("insert") ||
+      methodNameLower.startsWith("add") ||
+      methodNameLower.startsWith("create")
+    ) {
       return `    <insert id = "${methodName}">
     </insert>
 `;
-    } else if (methodNameLower.startsWith('update') || methodNameLower.startsWith('modify') || methodNameLower.startsWith('edit')) {
+    } else if (
+      methodNameLower.startsWith("update") ||
+      methodNameLower.startsWith("modify") ||
+      methodNameLower.startsWith("edit")
+    ) {
       return `    <update id = "${methodName}">
     </update>
 `;
-    } else if (methodNameLower.startsWith('delete') || methodNameLower.startsWith('remove')) {
+    } else if (
+      methodNameLower.startsWith("delete") ||
+      methodNameLower.startsWith("remove")
+    ) {
       return `    <delete id="${methodName}">
     </delete>
 `;
@@ -111,7 +141,9 @@ async function promptToAddXmlContent(editor: vscode.TextEditor, methodName: stri
     }
   }
 
-  function findBestInsertPosition(document: vscode.TextDocument): vscode.Position | null {
+  function findBestInsertPosition(
+    document: vscode.TextDocument
+  ): vscode.Position | null {
     const text = document.getText();
     const mapperEndMatch = text.match(/<\/mapper>/);
 
@@ -143,14 +175,15 @@ async function jumpToXmlStartPosition(javaFilePath: string, namespace: string) {
 }
 
 async function promptToCreateXmlFile(javaFilePath: string, namespace: string) {
-  const message = `No XML mapper found for namespace "${namespace}". Create new XML mapper file?`;
+  const message = `No XML mapper found for namespace "${namespace}".\n
+Create new XML mapper file?`;
   const action = await vscode.window.showInformationMessage(
     message,
-    'Create XML File',
-    'Cancel'
+    "Create XML File",
+    "Cancel"
   );
 
-  if (action === 'Create XML File') {
+  if (action === "Create XML File") {
     await createNewXmlMapperFile(javaFilePath, namespace);
   }
 }
@@ -161,8 +194,8 @@ async function createNewXmlMapperFile(javaFilePath: string, namespace: string) {
       canSelectFiles: false,
       canSelectFolders: true,
       canSelectMany: false,
-      openLabel: 'Select Folder',
-      title: 'Select folder for XML mapper file'
+      openLabel: "Select Folder",
+      title: "Select folder for XML mapper file",
     });
 
     if (!folderUris || folderUris.length === 0) {
@@ -171,18 +204,18 @@ async function createNewXmlMapperFile(javaFilePath: string, namespace: string) {
     const selectedFolder = folderUris[0];
 
     const fileName = await vscode.window.showInputBox({
-      prompt: 'Enter XML mapper file name',
-      placeHolder: 'e.g., UserMapper.xml',
-      value: `${namespace.split('.').pop()}Mapper.xml`,
+      prompt: "Enter XML mapper file name",
+      placeHolder: "e.g., UserMapper.xml",
+      value: `${namespace.split(".").pop()}.xml`,
       validateInput: (value) => {
         if (!value) {
-          return 'Please enter a file name';
+          return "Please enter a file name";
         }
-        if (!value.endsWith('.xml')) {
-          return 'File must have .xml extension';
+        if (!value.endsWith(".xml")) {
+          return "File must have .xml extension";
         }
         return null;
-      }
+      },
     });
 
     if (!fileName) {
@@ -193,33 +226,33 @@ async function createNewXmlMapperFile(javaFilePath: string, namespace: string) {
       await vscode.workspace.fs.stat(fileUri);
       const overwrite = await vscode.window.showWarningMessage(
         `File ${fileName} already exists. Overwrite?`,
-        'Overwrite',
-        'Cancel'
+        "Overwrite",
+        "Cancel"
       );
-      if (overwrite !== 'Overwrite') {
+      if (overwrite !== "Overwrite") {
         return;
       }
     } catch (error) {
-      // 文件不存在，继续创建
+      OutputLogger.errorWithStackTrace(
+        `Error checking if XML mapper file exists: ${error}`,
+        error as Error
+      );
     }
-
-    // 生成完整的XML mapper模板
     const xmlContent = generateCompleteXmlMapperTemplate(namespace);
-
-    // 创建文件并写入内容
-    await vscode.workspace.fs.writeFile(fileUri, Buffer.from(xmlContent, 'utf8'));
-
-    // 打开新创建的文件
+    await vscode.workspace.fs.writeFile(
+      fileUri,
+      Buffer.from(xmlContent, "utf8")
+    );
     const document = await vscode.workspace.openTextDocument(fileUri);
     const editor = await vscode.window.showTextDocument(document);
     const startPosition = new vscode.Position(0, 0);
     await VscodeUtils.ensurePositionVisible(editor, startPosition);
-
-    // 刷新MappersStore以包含新文件
     await MappersStore.getInstance().addXmlFile(fileUri, document);
   } catch (error) {
-    console.error('Error creating XML mapper file:', error);
-    vscode.window.showErrorMessage(`Failed to create XML mapper file: ${error}`);
+    console.error("Error creating XML mapper file:", error);
+    vscode.window.showErrorMessage(
+      `Failed to create XML mapper file: ${error}`
+    );
   }
 }
 

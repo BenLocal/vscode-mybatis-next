@@ -8,6 +8,7 @@ import { scanWorkspaceFiles } from "./scanWorkspace";
 import { MappersStore } from "./mappersStore";
 import { registerJava2XmlCommands } from "./java2XmlCommand";
 import { registerXml2JavaCommands } from "./xml2JavaCommand";
+import { OutputLogger } from "./outputLogs";
 
 let parserManager: ParserManager;
 let javaMapperCodelensProvider: JavaMapperCodelensProvider;
@@ -15,7 +16,8 @@ let xmlMapperCodelensProvider: XmlMapperCodelensProvider;
 let statusBarItem: vscode.StatusBarItem;
 
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('Congratulations, your extension "mybatis-next" is now active!');
+  OutputLogger.initialize(context);
+  OutputLogger.info("MyBatis Next extension activated", "EXTENSION");
 
   // Initialize parser manager
   parserManager = new ParserManager("tree-sitter");
@@ -54,7 +56,7 @@ function registerCommands(context: vscode.ExtensionContext) {
     "mybatis-next.reset",
     async () => {
       MappersStore.getInstance().cleanup();
-      vscode.window.setStatusBarMessage('Mybatis.Next: clean success', 3000);
+      vscode.window.setStatusBarMessage("Mybatis.Next: clean success", 3000);
       scanWorkspaceFiles();
     }
   );
@@ -86,11 +88,13 @@ function createStatusBarItem(context: vscode.ExtensionContext) {
 
       const message = `找到 ${counts.xmlCount} 个 XML 映射文件和 ${counts.javaCount} 个 Java 接口文件`;
       vscode.window.showInformationMessage(message);
+
+      // display output logs
+      OutputLogger.show();
     }
   );
 
-  context.subscriptions.push(showMappersCommand);
-  context.subscriptions.push(statusBarItem);
+  context.subscriptions.push(showMappersCommand, statusBarItem);
 
   // 显示状态栏项
   statusBarItem.show();

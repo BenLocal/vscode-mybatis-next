@@ -1,11 +1,16 @@
 import * as vscode from "vscode";
-import { XmlParseResult, ParserManager, FastXmlParseDataResult } from "./parserManager";
+import {
+  XmlParseResult,
+  ParserManager,
+  FastXmlParseDataResult,
+} from "./parserManager";
 import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
 import * as treeSitter from "web-tree-sitter";
 import * as crypto from "crypto";
 import { MyBatisUtils } from "./mybatisUtils";
 import { BiMap } from "@rimbu/bimap";
+import { OutputLogger } from "./outputLogs";
 
 export interface JavaMapperInfo {
   file: vscode.Uri | string;
@@ -72,21 +77,33 @@ export class MappersStore {
 
     const result = this._parserManager!.parseXml(content);
     if (!this.isMybatisMapperXmlFile(result)) {
+      OutputLogger.warn(
+        `File ${filePath} is not a Mybatis XML mapper file`,
+        "MAPPERS_STORE"
+      );
       return null;
     }
-    const info = XmlAnalyzer.analyzeMapperXml(result!, content);
-    if (!info) {
-      return null;
-    }
-    const xmlMapperInfo: XmlMapperInfo = {
-      file,
-      result: result!,
-      info: info,
-      context_hash: contextHash,
-    };
+    try {
+      const info = XmlAnalyzer.analyzeMapperXml(result!, content);
+      if (!info) {
+        return null;
+      }
+      const xmlMapperInfo: XmlMapperInfo = {
+        file,
+        result: result!,
+        info: info,
+        context_hash: contextHash,
+      };
 
-    this._xmlFiles.set(filePath, xmlMapperInfo);
-    return xmlMapperInfo;
+      this._xmlFiles.set(filePath, xmlMapperInfo);
+      return xmlMapperInfo;
+    } catch (error) {
+      OutputLogger.errorWithStackTrace(
+        `Error analyzing XML file ${filePath}:`,
+        error as Error
+      );
+      return null;
+    }
   }
 
   private isMybatisMapperXmlFile(result: XmlParseResult | null): boolean {
@@ -103,14 +120,18 @@ export class MappersStore {
     return true;
   }
 
-  private isMybatisMapperXmlFileFastXmlParser(data: FastXmlParseDataResult | null): boolean {
+  private isMybatisMapperXmlFileFastXmlParser(
+    data: FastXmlParseDataResult | null
+  ): boolean {
     if (!data || !data.mapper || !data.mapper["@_namespace"]) {
       return false;
     }
     return true;
   }
 
-  private isMybatisMapperXmlFileTreeSitter(result: XmlParseResult | null): boolean {
+  private isMybatisMapperXmlFileTreeSitter(
+    result: XmlParseResult | null
+  ): boolean {
     if (!result) {
       return false;
     }
@@ -131,8 +152,10 @@ export class MappersStore {
           const doctypeChild = child!.child(j);
           if (MyBatisUtils.treeSitterTypeIs(doctypeChild, "doctypedecl")) {
             const doctypeText = doctypeChild!.text;
-            if (doctypeText.includes("mybatis.org") &&
-              doctypeText.includes("mapper")) {
+            if (
+              doctypeText.includes("mybatis.org") &&
+              doctypeText.includes("mapper")
+            ) {
               return true;
             }
           }
@@ -160,23 +183,36 @@ export class MappersStore {
         return javaMapperInfo;
       }
     }
-    const result = this._parserManager!.parseJava(content);
-    if (!result) {
-      return null;
-    }
-    const info = JavaAnalyzer.analyzeTree(result);
-    if (!this.isMybatisJavaFile(info)) {
-      return null;
-    }
-    const javaMapperInfo: JavaMapperInfo = {
-      file,
-      tree: result,
-      info: info!,
-      context_hash: contextHash,
-    };
 
-    this._javaFiles.set(filePath, javaMapperInfo);
-    return javaMapperInfo;
+    try {
+      const result = this._parserManager!.parseJava(content);
+      if (!result) {
+        return null;
+      }
+      const info = JavaAnalyzer.analyzeTree(result);
+      if (!this.isMybatisJavaFile(info)) {
+        OutputLogger.warn(
+          `File ${filePath} is not a Mybatis Java file`,
+          "MAPPERS_STORE"
+        );
+        return null;
+      }
+      const javaMapperInfo: JavaMapperInfo = {
+        file,
+        tree: result,
+        info: info!,
+        context_hash: contextHash,
+      };
+
+      this._javaFiles.set(filePath, javaMapperInfo);
+      return javaMapperInfo;
+    } catch (error) {
+      OutputLogger.errorWithStackTrace(
+        `Error parsing Java file ${filePath}:`,
+        error as Error
+      );
+      return null;
+    }
   }
 
   private isMybatisJavaFile(info: JavaClassInfo | null): boolean {
@@ -219,11 +255,12 @@ export class MappersStore {
       return null;
     }
 
-    const nonTargetFiles = files.filter(file => {
+    const nonTargetFiles = files.filter((file) => {
       const filePath = MyBatisUtils.getFilePath(file.file);
-      return !filePath.includes('/target/') && !filePath.includes('\\target\\');
+      return !filePath.includes("/target/") && !filePath.includes("\\target\\");
     });
-    const bestXmlFile = nonTargetFiles.length > 0 ? nonTargetFiles[0] : files[0];
+    const bestXmlFile =
+      nonTargetFiles.length > 0 ? nonTargetFiles[0] : files[0];
     this._bestMapper.set(
       javaFilePath,
       MyBatisUtils.getFilePath(bestXmlFile.file)
@@ -269,7 +306,7 @@ export class MappersStore {
   public getMappersCount(): { xmlCount: number; javaCount: number } {
     return {
       xmlCount: this._xmlFiles.size,
-      javaCount: this._javaFiles.size
+      javaCount: this._javaFiles.size,
     };
   }
 

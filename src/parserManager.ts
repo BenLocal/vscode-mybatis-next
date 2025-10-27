@@ -95,6 +95,7 @@ export class ParserManager {
       console.error("Java language not initialized");
       return null;
     }
+
     return this.javaParser.parse(content);
   }
 

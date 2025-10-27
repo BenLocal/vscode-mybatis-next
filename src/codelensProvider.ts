@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
 import { MyBatisUtils } from "./mybatisUtils";
+import { OutputLogger } from "./outputLogs";
 
 export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses: vscode.EventEmitter<void> =
@@ -11,8 +12,14 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
 
   async provideCodeLenses(
     document: vscode.TextDocument,
-    _token: vscode.CancellationToken
+    token: vscode.CancellationToken
   ): Promise<vscode.CodeLens[]> {
+    if (token.isCancellationRequested) {
+      OutputLogger.info("Code lens provider cancelled", "CODE_LENS_PROVIDER");
+      return [];
+    }
+
+    const startTime = performance.now();
     const uri = document.uri;
     const javaFilePath = MyBatisUtils.getFilePath(uri);
     const info = await MappersStore.getInstance().addJavaFile(uri, document);
@@ -20,6 +27,7 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
       return [];
     }
     const classInfo = info.info;
+    const namespace = MyBatisUtils.getMapperNamespace(classInfo);
     const classPosition = classInfo.classPosition;
     const startPosition = new vscode.Position(
       classPosition.startLine,
@@ -29,15 +37,14 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
       classPosition.startLine,
       classPosition.startColumn
     );
-    const codeLens = new vscode.CodeLens(new vscode.Range(startPosition, endPosition), {
-      title: `🚀  Xml Mapper`,
-      command: "mybatis-next.java2Xml",
-      arguments: [
-        javaFilePath,
-        MyBatisUtils.getMapperNamespace(classInfo),
-        null,
-      ],
-    });
+    const codeLens = new vscode.CodeLens(
+      new vscode.Range(startPosition, endPosition),
+      {
+        title: `🚀  Xml Mapper`,
+        command: "mybatis-next.java2Xml",
+        arguments: [javaFilePath, namespace, null],
+      }
+    );
 
     const codeLenses: vscode.CodeLens[] = [];
     codeLenses.push(codeLens);
@@ -59,26 +66,33 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
 
       const codeLens = new vscode.CodeLens(range, {
         title: `🚀  Xml Mapper(${method.name})`,
-        tooltip: `method: ${method.name}\nline: ${method.startLine}\nargs: ${method.parameters.join(", ") || "empty"
-          }`,
+        tooltip: `method: ${method.name}
+line: ${method.startLine}
+return: ${method.returnType || "void"}
+args: ${method.parameters.join(", ") || "empty"}`,
         command: "mybatis-next.java2Xml",
-        arguments: [
-          javaFilePath,
-          MyBatisUtils.getMapperNamespace(classInfo),
-          method.name,
-        ],
+        arguments: [javaFilePath, namespace, method.name],
       });
 
       codeLenses.push(codeLens);
     }
-
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    OutputLogger.info(
+      `Java mapper ${javaFilePath} codelens provider took ${duration}ms`,
+      "CODE_LENS_PROVIDER"
+    );
     return codeLenses;
   }
 
   resolveCodeLens?(
     codeLens: vscode.CodeLens,
-    _token: vscode.CancellationToken
+    token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.CodeLens> {
+    if (token.isCancellationRequested) {
+      OutputLogger.info("Code lens provider cancelled", "CODE_LENS_PROVIDER");
+      return codeLens;
+    }
     return codeLens;
   }
 
@@ -96,8 +110,14 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
 
   async provideCodeLenses(
     document: vscode.TextDocument,
-    _token: vscode.CancellationToken
+    token: vscode.CancellationToken
   ): Promise<vscode.CodeLens[]> {
+    if (token.isCancellationRequested) {
+      OutputLogger.info("Code lens provider cancelled", "CODE_LENS_PROVIDER");
+      return [];
+    }
+
+    const startTime = performance.now();
     const uri = document.uri;
     const xmlFilePath = MyBatisUtils.getFilePath(uri);
     const info = await MappersStore.getInstance().addXmlFile(uri, document);
@@ -129,13 +149,24 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
 
       codeLenses.push(codeLens);
     }
+
+    const endTime = performance.now();
+    const duration = endTime - startTime;
+    OutputLogger.info(
+      `Xml mapper ${xmlFilePath} codelens provider took ${duration}ms`,
+      "CODE_LENS_PROVIDER"
+    );
     return codeLenses;
   }
 
   resolveCodeLens?(
     codeLens: vscode.CodeLens,
-    _token: vscode.CancellationToken
+    token: vscode.CancellationToken
   ): vscode.ProviderResult<vscode.CodeLens> {
+    if (token.isCancellationRequested) {
+      OutputLogger.info("Code lens provider cancelled", "CODE_LENS_PROVIDER");
+      return codeLens;
+    }
     return codeLens;
   }
 

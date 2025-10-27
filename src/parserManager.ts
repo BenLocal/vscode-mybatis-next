@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import * as treeSitter from "web-tree-sitter";
 import * as fastXmlParser from "fast-xml-parser";
+import { OutputLogger } from "./outputLogs";
 
 export interface XmlParseResult {
   type: "fast-xml-parser" | "tree-sitter";
@@ -55,9 +56,15 @@ export class ParserManager {
       );
       this.javaLanguage = await treeSitter.Language.load(javaWasm.fsPath);
       this.javaParser.setLanguage(this.javaLanguage);
-      console.log("Tree-sitter initialized successfully");
+      OutputLogger.info(
+        "Tree-sitter Java parser initialized successfully",
+        "PARSER_MANAGER"
+      );
     } catch (error) {
-      console.error("Failed to initialize Tree-sitter:", error);
+      OutputLogger.errorWithStackTrace(
+        "Failed to initialize Tree-sitter Java parser:",
+        error as Error
+      );
     }
   }
 
@@ -83,10 +90,16 @@ export class ParserManager {
           xmlTreeWasm.fsPath
         );
         this.xmlTreeParser.setLanguage(this.xmlTreeLanguage);
-        console.log("Tree-sitter XML parser initialized successfully");
+        OutputLogger.info(
+          "Tree-sitter XML parser initialized successfully",
+          "PARSER_MANAGER"
+        );
       }
     } catch (error) {
-      console.error("Failed to initialize XML parser:", error);
+      OutputLogger.errorWithStackTrace(
+        "Failed to initialize XML parser:",
+        error as Error
+      );
     }
   }
 

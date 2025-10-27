@@ -9,27 +9,49 @@ export async function scanWorkspaceFiles() {
       vscode.workspace.findFiles("**/*.xml"),
       vscode.workspace.findFiles("**/*.java"),
     ]);
-    const xmlPromises = xmlFiles.map((file) =>
-      limit(async () => {
-        try {
-          const document = await vscode.workspace.openTextDocument(file);
-          MappersStore.getInstance().addXmlFile(file, document);
-        } catch (error) {
-          console.error(`Error parsing XML file ${file.fsPath}:`, error);
-        }
-      })
-    );
-    const javaPromises = javaFiles.map((file) =>
-      limit(async () => {
-        try {
-          const document = await vscode.workspace.openTextDocument(file);
-          MappersStore.getInstance().addJavaFile(file, document);
-        } catch (error) {
-          console.error(`Error parsing Java file ${file.fsPath}:`, error);
-        }
-      })
-    );
-    await Promise.all([...xmlPromises, ...javaPromises]);
+    const totalFiles = xmlFiles.length + javaFiles.length;
+    let processedFiles = 0;
+    await vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: "Scanning MyBatis files",
+      cancellable: false
+    }, async (progress) => {
+      const xmlPromises = xmlFiles.map((file) =>
+        limit(async () => {
+          try {
+            const document = await vscode.workspace.openTextDocument(file);
+            MappersStore.getInstance().addXmlFile(file, document);
+          } catch (error) {
+            console.error(`Error parsing XML file ${file.fsPath}:`, error);
+          } finally {
+            processedFiles++;
+            progress.report({
+              increment: 100 / totalFiles,
+              message: `Processed ${processedFiles} of ${totalFiles} files`
+            });
+          }
+        })
+      );
+      const javaPromises = javaFiles.map((file) =>
+        limit(async () => {
+          try {
+            const document = await vscode.workspace.openTextDocument(file);
+            MappersStore.getInstance().addJavaFile(file, document);
+          } catch (error) {
+            console.error(`Error parsing Java file ${file.fsPath}:`, error);
+          } finally {
+            processedFiles++;
+            progress.report({
+              increment: 100 / totalFiles,
+              message: `Processed ${processedFiles} of ${totalFiles} files`
+            });
+          }
+        })
+      );
+      await Promise.all([...xmlPromises, ...javaPromises]);
+    });
+
+
   } catch (error) {
     console.error(error);
   }

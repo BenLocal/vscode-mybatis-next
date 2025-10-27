@@ -37,7 +37,7 @@ export async function activate(context: vscode.ExtensionContext) {
   registerCommands(context);
   createStatusBarItem(context);
 
-  await scanWorkspaceFiles();
+  scanWorkspaceFiles();
 }
 
 // This method is called when your extension is deactivated
@@ -51,9 +51,11 @@ export function deactivate() {
 function registerCommands(context: vscode.ExtensionContext) {
   // Add command to test parsing
   const parseCommand = vscode.commands.registerCommand(
-    "mybatis-next.testParse",
-    () => {
-      javaMapperCodelensProvider.fire();
+    "mybatis-next.reset",
+    async () => {
+      MappersStore.getInstance().cleanup();
+      vscode.window.setStatusBarMessage('Mybatis.Next: clean success', 3000);
+      scanWorkspaceFiles();
     }
   );
 
@@ -92,16 +94,4 @@ function createStatusBarItem(context: vscode.ExtensionContext) {
 
   // 显示状态栏项
   statusBarItem.show();
-
-  // 监听文件变化，更新状态栏
-  const fileWatcher = vscode.workspace.onDidChangeTextDocument((event) => {
-    //updateStatusBar();
-  });
-
-  const workspaceWatcher = vscode.workspace.onDidSaveTextDocument((document) => {
-    //updateStatusBar();
-  });
-
-  context.subscriptions.push(fileWatcher);
-  context.subscriptions.push(workspaceWatcher);
 }

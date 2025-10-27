@@ -10,18 +10,18 @@
     "Other"
   ],
   "keywords": [
-		"MyBatis",
-		"Mapper"
-	],
+    "MyBatis",
+    "Mapper"
+  ],
   "bugs": {
-		"url": "https://github.com/BenLocal/vscode-mybatis-next/issues",
-		"email": "807629978@qq.com"
-	},
+    "url": "https://github.com/BenLocal/vscode-mybatis-next/issues",
+    "email": "807629978@qq.com"
+  },
   "homepage": "https://github.com/BenLocal/vscode-mybatis-next/blob/master/README.md",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/BenLocal/vscode-mybatis-next.git"
-	},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BenLocal/vscode-mybatis-next.git"
+  },
   "activationEvents": [
     "onLanguage:java",
     "workspaceContains:*.xml"
@@ -38,8 +38,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "mybatis-next.testParse",
-        "title": "Mybatis.Next: testParse"
+        "command": "mybatis-next.reset",
+        "title": "Mybatis.Next: Reset"
       }
     ]
   },

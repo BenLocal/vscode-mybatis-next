@@ -272,4 +272,10 @@ export class MappersStore {
       javaCount: this._javaFiles.size
     };
   }
+
+  public cleanup(): void {
+    this._xmlFiles.clear();
+    this._javaFiles.clear();
+    this._bestMapper.removeKeys(this._bestMapper.streamKeys());
+  }
 }

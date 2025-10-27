@@ -6,6 +6,12 @@ export interface JavaClassInfo {
   classType: "class" | "interface" | "enum" | "annotation";
   methods: JavaMethodInfo[];
   imports: string[];
+  classPosition: {
+    startLine: number;
+    startColumn: number;
+    endLine: number;
+    endColumn: number;
+  };
 }
 
 export interface JavaMethodInfo {
@@ -37,6 +43,12 @@ export class JavaAnalyzer {
       classType: "class",
       methods: [],
       imports: [],
+      classPosition: {
+        startLine: 0,
+        startColumn: 0,
+        endLine: 0,
+        endColumn: 0,
+      },
     };
 
     // 遍历 AST 节点
@@ -111,6 +123,12 @@ export class JavaAnalyzer {
     if (!classInfo.className) {
       classInfo.className = this.extractIdentifierName(node);
       classInfo.classType = classType;
+      classInfo.classPosition = {
+        startLine: node.startPosition.row,
+        startColumn: node.startPosition.column,
+        endLine: node.endPosition.row,
+        endColumn: node.endPosition.column,
+      };
     }
   }
 

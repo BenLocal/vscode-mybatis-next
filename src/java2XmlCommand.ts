@@ -8,6 +8,12 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
     "mybatis-next.java2Xml",
     async (javaFilePath: string, namespace: string, methodName: string) => {
       try {
+        if (!methodName) {
+          // class codelens
+          await jumpToXmlStartPosition(javaFilePath, namespace);
+          return;
+        }
+
         const xmlFile = MappersStore.getInstance().selectBestXmlFile(
           javaFilePath,
           namespace
@@ -118,4 +124,20 @@ async function promptToAddXmlContent(editor: vscode.TextEditor, methodName: stri
     const lastLine = document.lineAt(document.lineCount - 1);
     return new vscode.Position(lastLine.lineNumber, lastLine.text.length);
   }
+}
+
+async function jumpToXmlStartPosition(javaFilePath: string, namespace: string) {
+  const xmlFile = MappersStore.getInstance().selectBestXmlFile(
+    javaFilePath,
+    namespace
+  );
+  if (!xmlFile) {
+    // try to add xml file
+    return;
+  }
+  const fileUri = MyBatisUtils.getFilePath(xmlFile.file);
+  const xmlDocument = await vscode.workspace.openTextDocument(fileUri);
+  const xmlEditor = await vscode.window.showTextDocument(xmlDocument);
+  const startPosition = new vscode.Position(0, 0);
+  await VscodeUtils.ensurePositionVisible(xmlEditor, startPosition);
 }

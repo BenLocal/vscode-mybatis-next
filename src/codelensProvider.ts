@@ -20,11 +20,32 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
       return [];
     }
     const classInfo = info.info;
-    if (!classInfo.methods || classInfo.methods.length <= 0) {
-      return [];
-    }
+    const classPosition = classInfo.classPosition;
+    const startPosition = new vscode.Position(
+      classPosition.startLine,
+      classPosition.startColumn
+    );
+    const endPosition = new vscode.Position(
+      classPosition.startLine,
+      classPosition.startColumn
+    );
+    const codeLens = new vscode.CodeLens(new vscode.Range(startPosition, endPosition), {
+      title: `🚀  Xml Mapper`,
+      command: "mybatis-next.java2Xml",
+      arguments: [
+        javaFilePath,
+        MyBatisUtils.getMapperNamespace(classInfo),
+        null,
+      ],
+    });
 
     const codeLenses: vscode.CodeLens[] = [];
+    codeLenses.push(codeLens);
+
+    if (!classInfo.methods || classInfo.methods.length <= 0) {
+      return codeLenses;
+    }
+
     for (const method of classInfo.methods) {
       const startPosition = new vscode.Position(
         method.startLine,
@@ -38,9 +59,8 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
 
       const codeLens = new vscode.CodeLens(range, {
         title: `🚀  Xml Mapper(${method.name})`,
-        tooltip: `method: ${method.name}\nline: ${method.startLine}\nargs: ${
-          method.parameters.join(", ") || "empty"
-        }`,
+        tooltip: `method: ${method.name}\nline: ${method.startLine}\nargs: ${method.parameters.join(", ") || "empty"
+          }`,
         command: "mybatis-next.java2Xml",
         arguments: [
           javaFilePath,

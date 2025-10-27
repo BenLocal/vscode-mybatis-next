@@ -17,7 +17,6 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
         const fileUri = MyBatisUtils.getFilePath(xmlFile.file);
         const xmlDocument = await vscode.workspace.openTextDocument(fileUri);
         const xmlEditor = await vscode.window.showTextDocument(xmlDocument);
-        // 在xml文件中查找方法名对应的sql语句
         const sqlStatement = xmlFile.info.sqlStatements.find(
           (sqlStatement) => sqlStatement.id === methodName
         );
@@ -32,6 +31,11 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
         xmlEditor.selection = new vscode.Selection(
           startPosition,
           startPosition
+        );
+        // 将当前光标位置显示在编辑器中间
+        xmlEditor.revealRange(
+          new vscode.Range(startPosition, startPosition),
+          vscode.TextEditorRevealType.InCenter
         );
       } catch (error) {
         console.error(`Error opening XML file:`, error);

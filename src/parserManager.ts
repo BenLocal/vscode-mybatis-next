@@ -2,9 +2,11 @@ import * as vscode from "vscode";
 import * as treeSitter from "web-tree-sitter";
 import * as fastXmlParser from "fast-xml-parser";
 
-export interface FastXmlParseResult {
+export interface XmlParseResult {
+  type: "fast-xml-parser" | "tree-sitter";
   xmlMetaDataSymbol: Symbol | null;
   data: FastXmlParseDataResult;
+  tree: treeSitter.Tree | null;
 }
 
 export interface FastXmlParseDataResult {
@@ -96,7 +98,21 @@ export class ParserManager {
     return this.javaParser.parse(content);
   }
 
-  parseXml(content: string): FastXmlParseResult | null {
+  parseXmlTreeSitter(content: string): XmlParseResult | null {
+    if (!this.xmlTreeParser) {
+      console.error("XML language not initialized");
+      return null;
+    }
+    const tree = this.xmlTreeParser.parse(content);
+    return {
+      type: "tree-sitter",
+      xmlMetaDataSymbol: null,
+      data: {} as FastXmlParseDataResult,
+      tree: tree,
+    };
+  }
+
+  parseXmlFastXmlParser(content: string): XmlParseResult | null {
     if (!this.xmlParser) {
       console.error("XML language not initialized");
       return null;
@@ -105,11 +121,23 @@ export class ParserManager {
     try {
       const result = this.xmlParser.parse(content) as FastXmlParseDataResult;
       return {
+        type: "fast-xml-parser",
         xmlMetaDataSymbol: this.xmlMetaDataSymbol,
         data: result,
+        tree: null,
       };
     } catch (error) {
       console.error("Failed to parse XML:", error);
+      return null;
+    }
+  }
+
+  parseXml(content: string): XmlParseResult | null {
+    if (this._xmlParserType === "tree-sitter") {
+      return this.parseXmlTreeSitter(content);
+    } else if (this._xmlParserType === "fast-xml-parser") {
+      return this.parseXmlFastXmlParser(content);
+    } else {
       return null;
     }
   }

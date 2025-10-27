@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { FastXmlParseResult, ParserManager } from "./parserManager";
+import { XmlParseResult, ParserManager, FastXmlParseDataResult } from "./parserManager";
 import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
 import * as treeSitter from "web-tree-sitter";
@@ -16,7 +16,7 @@ export interface JavaMapperInfo {
 
 export interface XmlMapperInfo {
   file: vscode.Uri | string;
-  fastResult: FastXmlParseResult;
+  result: XmlParseResult;
   info: MyBatisMapperInfo;
   context_hash: string;
 }
@@ -80,7 +80,7 @@ export class MappersStore {
     }
     const xmlMapperInfo: XmlMapperInfo = {
       file,
-      fastResult: result!,
+      result: result!,
       info: info,
       context_hash: contextHash,
     };
@@ -89,17 +89,57 @@ export class MappersStore {
     return xmlMapperInfo;
   }
 
-  private isMybatisMapperXmlFile(result: FastXmlParseResult | null): boolean {
+  private isMybatisMapperXmlFile(result: XmlParseResult | null): boolean {
     if (!result) {
       return false;
     }
-    if (!result.data.mapper) {
-      return false;
+
+    if (result.type === "tree-sitter") {
+      return this.isMybatisMapperXmlFileTreeSitter(result);
+    } else if (result.type === "fast-xml-parser") {
+      return this.isMybatisMapperXmlFileFastXmlParser(result);
     }
-    if (!result.data.mapper["@_namespace"]) {
+
+    return true;
+  }
+
+  private isMybatisMapperXmlFileFastXmlParser(data: FastXmlParseDataResult | null): boolean {
+    if (!data || !data.mapper || !data.mapper["@_namespace"]) {
       return false;
     }
     return true;
+  }
+
+  private isMybatisMapperXmlFileTreeSitter(result: XmlParseResult | null): boolean {
+    if (!result) {
+      return false;
+    }
+    if (!result.tree) {
+      return false;
+    }
+    if (!this.hasMybatisDoctypeDeclaration(result.tree.rootNode)) {
+      return false;
+    }
+    return true;
+  }
+
+  private hasMybatisDoctypeDeclaration(rootNode: treeSitter.Node): boolean {
+    for (let i = 0; i < rootNode.childCount; i++) {
+      const child = rootNode.child(i);
+      if (MyBatisUtils.treeSitterTypeIs(child, "prolog")) {
+        for (let j = 0; j < child!.childCount; j++) {
+          const doctypeChild = child!.child(j);
+          if (MyBatisUtils.treeSitterTypeIs(doctypeChild, "doctypedecl")) {
+            const doctypeText = doctypeChild!.text;
+            if (doctypeText.includes("mybatis.org") &&
+              doctypeText.includes("mapper")) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   public async addJavaFile(
@@ -219,5 +259,12 @@ export class MappersStore {
     );
     const hash = Buffer.from(hashBuffer).toString("hex");
     return hash;
+  }
+
+  public getMappersCount(): { xmlCount: number; javaCount: number } {
+    return {
+      xmlCount: this._xmlFiles.size,
+      javaCount: this._javaFiles.size
+    };
   }
 }

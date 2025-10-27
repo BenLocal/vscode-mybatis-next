@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
 import { MyBatisUtils } from "./mybatisUtils";
+import { VscodeUtils } from "./vscodeUtils";
 
 export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
@@ -21,26 +22,100 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
           (sqlStatement) => sqlStatement.id === methodName
         );
         if (!sqlStatement) {
+          await promptToAddXmlContent(xmlEditor, methodName, namespace);
           return;
         }
         const startPosition = new vscode.Position(
           sqlStatement.startLine,
           sqlStatement.startColumn
         );
-        // 鼠标移动到到range startPosition位置
-        xmlEditor.selection = new vscode.Selection(
-          startPosition,
-          startPosition
-        );
-        // 将当前光标位置显示在编辑器中间
-        xmlEditor.revealRange(
-          new vscode.Range(startPosition, startPosition),
-          vscode.TextEditorRevealType.InCenter
-        );
+        await VscodeUtils.ensurePositionVisible(xmlEditor, startPosition);
       } catch (error) {
         console.error(`Error opening XML file:`, error);
       }
     }
   );
   context.subscriptions.push(disposable);
+}
+
+async function promptToAddXmlContent(editor: vscode.TextEditor, methodName: string, namespace: string) {
+  // 显示信息提示
+  const message = `Method "${methodName}" not found in XML mappings.Add XML content ?`;
+  const action = await vscode.window.showInformationMessage(
+    message,
+    'Add XML Content',
+    'Cancel'
+  );
+  if (action === 'Add XML Content') {
+    await addXmlContent(editor, methodName, namespace);
+  }
+
+  async function addXmlContent(editor: vscode.TextEditor, methodName: string, namespace: string) {
+    const xmlTemplate = generateXmlTemplate(methodName);
+    const mapperEndPosition = findBestInsertPosition(editor.document);
+
+    if (mapperEndPosition) {
+      await editor.edit(editBuilder => {
+        editBuilder.insert(mapperEndPosition, xmlTemplate);
+      });
+
+      const newPosition = new vscode.Position(mapperEndPosition.line, mapperEndPosition.character);
+      await VscodeUtils.ensurePositionVisible(editor, newPosition);
+
+      const endPosition = new vscode.Position(
+        mapperEndPosition.line + xmlTemplate.split('\n').length - 1,
+        xmlTemplate.split('\n').pop()?.length || 0
+      );
+      editor.selection = new vscode.Selection(mapperEndPosition, endPosition);
+    } else {
+      const lastLine = editor.document.lineAt(editor.document.lineCount - 1);
+      const endPosition = new vscode.Position(lastLine.lineNumber, lastLine.text.length);
+
+      await editor.edit(editBuilder => {
+        editBuilder.insert(endPosition, '\n' + xmlTemplate);
+      });
+
+      const newPosition = new vscode.Position(endPosition.line + 1, 0);
+      await VscodeUtils.ensurePositionVisible(editor, newPosition);
+    }
+  }
+
+  function generateXmlTemplate(methodName: string): string {
+    const methodNameLower = methodName.toLowerCase();
+    if (methodNameLower.startsWith('select') || methodNameLower.startsWith('get') || methodNameLower.startsWith('find')) {
+      return `    <select id = "${methodName}">
+    </select>
+`;
+    } else if (methodNameLower.startsWith('insert') || methodNameLower.startsWith('add') || methodNameLower.startsWith('create')) {
+      return `    <insert id = "${methodName}">
+    </insert>
+`;
+    } else if (methodNameLower.startsWith('update') || methodNameLower.startsWith('modify') || methodNameLower.startsWith('edit')) {
+      return `    <update id = "${methodName}">
+    </update>
+`;
+    } else if (methodNameLower.startsWith('delete') || methodNameLower.startsWith('remove')) {
+      return `    <delete id="${methodName}">
+    </delete>
+`;
+    } else {
+      return `    <select id = "${methodName}">
+    </select>
+`;
+    }
+  }
+
+  function findBestInsertPosition(document: vscode.TextDocument): vscode.Position | null {
+    const text = document.getText();
+    const mapperEndMatch = text.match(/<\/mapper>/);
+
+    if (mapperEndMatch) {
+      const index = mapperEndMatch.index!;
+      const position = document.positionAt(index);
+      return position;
+    }
+
+    const lastLine = document.lineAt(document.lineCount - 1);
+    return new vscode.Position(lastLine.lineNumber, lastLine.text.length);
+  }
 }

@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
 import { MyBatisUtils } from "./mybatisUtils";
+import { VscodeUtils } from "./vscodeUtils";
 
 export function registerXml2JavaCommands(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
@@ -28,17 +29,7 @@ export function registerXml2JavaCommands(context: vscode.ExtensionContext) {
           method.startLine,
           method.startColumn
         );
-        // 鼠标移动到到range startPosition位置
-        javaEditor.selection = new vscode.Selection(
-          startPosition,
-          startPosition
-        );
-
-        // 将当前光标位置显示在编辑器中间
-        javaEditor.revealRange(
-          new vscode.Range(startPosition, startPosition),
-          vscode.TextEditorRevealType.InCenter
-        );
+        await VscodeUtils.ensurePositionVisible(javaEditor, startPosition);
       } catch (error) {
         console.error(`Error opening XML file:`, error);
       }

@@ -218,7 +218,12 @@ export class MappersStore {
     if (files.length <= 0) {
       return null;
     }
-    const bestXmlFile = files[0];
+
+    const nonTargetFiles = files.filter(file => {
+      const filePath = MyBatisUtils.getFilePath(file.file);
+      return !filePath.includes('/target/') && !filePath.includes('\\target\\');
+    });
+    const bestXmlFile = nonTargetFiles.length > 0 ? nonTargetFiles[0] : files[0];
     this._bestMapper.set(
       javaFilePath,
       MyBatisUtils.getFilePath(bestXmlFile.file)

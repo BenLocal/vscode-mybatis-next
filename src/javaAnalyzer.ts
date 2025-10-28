@@ -80,7 +80,11 @@ export class JavaAnalyzer {
     return info;
   }
 
-  static queryClassInfo(match: treeSitter.QueryMatch, info: JavaClassInfo, queryClassInfo: boolean): void {
+  static queryClassInfo(
+    match: treeSitter.QueryMatch,
+    info: JavaClassInfo,
+    queryClassInfo: boolean
+  ): void {
     let methodInfo: JavaMethodInfo = {
       name: "",
       parameters: [],
@@ -135,14 +139,14 @@ export class JavaAnalyzer {
           break;
         case "method_modifiers":
           const modifiers = this.extractJavaMethodModifiers(capture.node);
-          if (modifiers.includes('default') || modifiers.includes('static')) {
+          if (modifiers.includes("default") || modifiers.includes("static")) {
             return;
           }
           break;
         case "method_return":
           let returnType = capture.node.text.trim();
-          if (returnType === 'void' || capture.node.type === 'void_type') {
-            returnType = 'void';
+          if (returnType === "void" || capture.node.type === "void_type") {
+            returnType = "void";
           }
           methodInfo.returnType = returnType;
           break;
@@ -150,8 +154,9 @@ export class JavaAnalyzer {
           methodInfo.name = node.text;
           break;
         case "method_parameters":
+          methodInfo.parameterStr =
+            this.extractJavaMethodParametersString(node);
           methodInfo.parameters = this.extractJavaMethodParameters(node);
-          methodInfo.parameterStr = node.text;
           break;
       }
     }
@@ -164,10 +169,10 @@ export class JavaAnalyzer {
   private static extractJavaMethodModifiers(node: treeSitter.Node): string[] {
     const modifiers: string[] = [];
 
-    if (node.type === 'modifiers') {
+    if (node.type === "modifiers") {
       for (let i = 0; i < node.childCount; i++) {
         const child = node.child(i);
-        if (child && child.type === 'modifier') {
+        if (child && child.type === "modifier") {
           modifiers.push(child.text.trim());
         }
       }
@@ -176,13 +181,23 @@ export class JavaAnalyzer {
     return modifiers;
   }
 
+  private static extractJavaMethodParametersString(
+    node: treeSitter.Node
+  ): string {
+    const parameters = node.text.trim();
+    if (parameters.startsWith("(") && parameters.endsWith(")")) {
+      return parameters.slice(1, -1);
+    }
+    return parameters;
+  }
+
   private static extractJavaMethodParameters(node: treeSitter.Node): string[] {
     const parameters: string[] = [];
 
-    if (node.type === 'formal_parameters') {
+    if (node.type === "formal_parameters") {
       for (let i = 0; i < node.childCount; i++) {
         const child = node.child(i);
-        if (child && child.type === 'formal_parameter') {
+        if (child && child.type === "formal_parameter") {
           parameters.push(child.text.trim());
         }
       }

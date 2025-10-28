@@ -43,7 +43,6 @@ export class XmlAnalyzer {
         ) @sql_stag
         (content)* @sql_content
       ) @sql_element
-      (#any-of? @sql_tag_name "select" "insert" "update" "delete")
     )*
   ) @mapper_element
 )
@@ -72,7 +71,7 @@ export class XmlAnalyzer {
     for (const match of matches) {
       let namespaceValue: string | undefined = undefined;
       let sqlElementNode: treeSitter.Node | null = null;
-      let sqlTagName = '';
+      let sqlTagName = "";
       const sqlAttrs = new Map<string, string>();
 
       // 处理每个 capture
@@ -81,34 +80,38 @@ export class XmlAnalyzer {
         const captureName = capture.name;
 
         switch (captureName) {
-          case 'namespace_value':
+          case "namespace_value":
             namespaceValue = this.extractAttributeValue(node.text);
             if (namespaceValue) {
               mapperInfo.namespace = namespaceValue;
             }
             break;
 
-          case 'sql_element':
+          case "sql_element":
             sqlElementNode = node;
             break;
 
-          case 'sql_tag_name':
+          case "sql_tag_name":
             sqlTagName = node.text.toLowerCase();
             break;
 
-          case 'sql_attr_name':
+          case "sql_attr_name":
             const attrValue = this.findAttributeValueInMatch(match, node);
             if (attrValue) {
               sqlAttrs.set(node.text, this.extractAttributeValue(attrValue));
             }
             break;
 
-          case 'sql_attr_value':
+          case "sql_attr_value":
             break;
         }
       }
 
-      if (sqlElementNode && sqlTagName && ['select', 'insert', 'update', 'delete'].includes(sqlTagName)) {
+      if (
+        sqlElementNode &&
+        sqlTagName &&
+        ["select", "insert", "update", "delete"].includes(sqlTagName)
+      ) {
         if (!sqlElementsMap.has(sqlElementNode)) {
           sqlElementsMap.set(sqlElementNode, {
             tagName: sqlTagName,
@@ -127,10 +130,10 @@ export class XmlAnalyzer {
     for (const [node, info] of sqlElementsMap) {
       const sqlStatement: SqlStatementInfo = {
         type: info.tagName as "select" | "insert" | "update" | "delete",
-        id: info.attributes.get('id') || '',
-        parameterType: info.attributes.get('parameterType') || undefined,
-        resultType: info.attributes.get('resultType') || undefined,
-        resultMap: info.attributes.get('resultMap') || undefined,
+        id: info.attributes.get("id") || "",
+        parameterType: info.attributes.get("parameterType") || undefined,
+        resultType: info.attributes.get("resultType") || undefined,
+        resultMap: info.attributes.get("resultMap") || undefined,
         startLine: node.startPosition.row,
         startColumn: node.startPosition.column,
         endLine: node.endPosition.row,
@@ -144,8 +147,10 @@ export class XmlAnalyzer {
 
   private static extractAttributeValue(attrValueText: string): string {
     let value = attrValueText.trim();
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
     return value;
@@ -153,16 +158,16 @@ export class XmlAnalyzer {
 
   private static findAttributeValueInMatch(
     match: treeSitter.QueryMatch,
-    attrNameNode: treeSitter.Node,
+    attrNameNode: treeSitter.Node
   ): string | null {
     const parent = attrNameNode.parent;
-    if (!parent || parent.type !== 'Attribute') {
+    if (!parent || parent.type !== "Attribute") {
       return null;
     }
 
     for (let i = 0; i < parent.childCount; i++) {
       const child = parent.child(i);
-      if (child && child.type === 'AttValue') {
+      if (child && child.type === "AttValue") {
         return child.text;
       }
     }

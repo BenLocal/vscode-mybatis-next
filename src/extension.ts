@@ -9,11 +9,13 @@ import { MappersStore } from "./mappersStore";
 import { registerJava2XmlCommands } from "./java2XmlCommand";
 import { registerXml2JavaCommands } from "./xml2JavaCommand";
 import { OutputLogger } from "./outputLogs";
+import { MybatisFileSystemWatcher } from "./fileSystemWatcher";
 
 let parserManager: ParserManager;
 let javaMapperCodelensProvider: JavaMapperCodelensProvider;
 let xmlMapperCodelensProvider: XmlMapperCodelensProvider;
 let statusBarItem: vscode.StatusBarItem;
+let fileSystemWatcher: MybatisFileSystemWatcher;
 
 export async function activate(context: vscode.ExtensionContext) {
   OutputLogger.initialize(context);
@@ -38,6 +40,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
   registerCommands(context);
   createStatusBarItem(context);
+
+  fileSystemWatcher = new MybatisFileSystemWatcher();
+  await fileSystemWatcher.initialize(context);
 
   scanWorkspaceFiles();
 }

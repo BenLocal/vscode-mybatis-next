@@ -33,14 +33,11 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
       classPosition.startLine,
       classPosition.startColumn
     );
-    const codeLens = new vscode.CodeLens(
-      new vscode.Range(position, position),
-      {
-        title: `🚀  Xml Mapper`,
-        command: "mybatis-next.java2Xml",
-        arguments: [javaFilePath, namespace, null],
-      }
-    );
+    const codeLens = new vscode.CodeLens(new vscode.Range(position, position), {
+      title: `🚀  Xml Mapper`,
+      command: "mybatis-next.java2Xml",
+      arguments: [javaFilePath, namespace, null],
+    });
 
     const codeLenses: vscode.CodeLens[] = [];
     codeLenses.push(codeLens);
@@ -54,15 +51,18 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
         method.startLine,
         method.startColumn
       );
-      const codeLens = new vscode.CodeLens(new vscode.Range(position, position), {
-        title: `🚀  Xml Mapper(${method.name})`,
-        tooltip: `method: ${method.name}
+      const codeLens = new vscode.CodeLens(
+        new vscode.Range(position, position),
+        {
+          title: `🚀  Xml Mapper(${method.name})`,
+          tooltip: `method: ${method.name}
 line: ${method.startLine}
 return: ${method.returnType || "void"}
-args: ${method.parameters.join(", ") || "empty"}`,
-        command: "mybatis-next.java2Xml",
-        arguments: [javaFilePath, namespace, method.name],
-      });
+args: ${method.parameterStr || "empty"}`,
+          command: "mybatis-next.java2Xml",
+          arguments: [javaFilePath, namespace, method.name],
+        }
+      );
 
       codeLenses.push(codeLens);
     }
@@ -116,14 +116,11 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
     }
     const mapperInfo = info.info;
     const position = new vscode.Position(0, 0);
-    const codeLens = new vscode.CodeLens(
-      new vscode.Range(position, position),
-      {
-        title: `🚀 Java Mapper`,
-        command: "mybatis-next.xml2Java",
-        arguments: [xmlFilePath, mapperInfo.namespace, null],
-      }
-    );
+    const codeLens = new vscode.CodeLens(new vscode.Range(position, position), {
+      title: `🚀 Java Mapper`,
+      command: "mybatis-next.xml2Java",
+      arguments: [xmlFilePath, mapperInfo.namespace, null],
+    });
 
     const codeLenses: vscode.CodeLens[] = [];
     codeLenses.push(codeLens);
@@ -135,12 +132,15 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
         sqlStatement.startLine,
         sqlStatement.startColumn
       );
-      const codeLens = new vscode.CodeLens(new vscode.Range(position, position), {
-        title: `🚀 Java Mapper(${sqlStatement.id})`,
-        tooltip: `SQL: ${sqlStatement.id}`,
-        command: "mybatis-next.xml2Java",
-        arguments: [xmlFilePath, mapperInfo.namespace, sqlStatement.id],
-      });
+      const codeLens = new vscode.CodeLens(
+        new vscode.Range(position, position),
+        {
+          title: `🚀 Java Mapper(${sqlStatement.id})`,
+          tooltip: `SQL: ${sqlStatement.id}`,
+          command: "mybatis-next.xml2Java",
+          arguments: [xmlFilePath, mapperInfo.namespace, sqlStatement.id],
+        }
+      );
 
       codeLenses.push(codeLens);
     }

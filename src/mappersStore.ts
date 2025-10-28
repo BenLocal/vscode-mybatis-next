@@ -1,7 +1,5 @@
 import * as vscode from "vscode";
-import {
-  ParserManager,
-} from "./parserManager";
+import { ParserManager } from "./parserManager";
 import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
 import * as treeSitter from "web-tree-sitter";
@@ -96,6 +94,18 @@ export class MappersStore {
       );
       return null;
     }
+  }
+
+  public async removeXmlFile(file: vscode.Uri | string): Promise<void> {
+    const filePath = MyBatisUtils.getFilePath(file);
+    this._xmlFiles.delete(filePath);
+    this._bestMapper.removeKeys(filePath);
+  }
+
+  public async removeJavaFile(file: vscode.Uri | string): Promise<void> {
+    const filePath = MyBatisUtils.getFilePath(file);
+    this._javaFiles.delete(filePath);
+    this._bestMapper.removeValues(filePath);
   }
 
   private isMybatisMapperXmlFile(tree: treeSitter.Tree | null): boolean {

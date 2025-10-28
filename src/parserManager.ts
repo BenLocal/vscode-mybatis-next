@@ -8,11 +8,13 @@ export class ParserManager {
   private javaLanguage: treeSitter.Language | null = null;
   private xmlTreeParser: treeSitter.Parser | null = null;
   private xmlTreeLanguage: treeSitter.Language | null = null;
-  private treeCache: LRUCache<string, treeSitter.Tree> = new LRUCache({
-    max: 100,
-    ttl: 1000 * 60 * 10,
-    updateAgeOnGet: true,
-  });
+  private readonly _treeCache: LRUCache<string, treeSitter.Tree> = new LRUCache(
+    {
+      max: 100,
+      ttl: 1000 * 60 * 10,
+      updateAgeOnGet: true,
+    }
+  );
 
   async initialize(context: vscode.ExtensionContext): Promise<void> {
     await treeSitter.Parser.init({
@@ -56,9 +58,7 @@ export class ParserManager {
         "wasm",
         "tree-sitter-xml.wasm"
       );
-      this.xmlTreeLanguage = await treeSitter.Language.load(
-        xmlTreeWasm.fsPath
-      );
+      this.xmlTreeLanguage = await treeSitter.Language.load(xmlTreeWasm.fsPath);
       this.xmlTreeParser.setLanguage(this.xmlTreeLanguage);
       OutputLogger.info(
         "Tree-sitter XML parser initialized successfully",
@@ -78,7 +78,7 @@ export class ParserManager {
       return null;
     }
 
-    const cacheTree = this.treeCache.get(filePath);
+    const cacheTree = this._treeCache.get(filePath);
     if (cacheTree) {
       if (cacheTree.rootNode.text === content) {
         return cacheTree;
@@ -87,7 +87,7 @@ export class ParserManager {
 
     const newTree = this.javaParser.parse(content);
     if (newTree) {
-      this.treeCache.set(filePath, newTree);
+      this._treeCache.set(filePath, newTree);
     }
     return newTree;
   }
@@ -98,7 +98,7 @@ export class ParserManager {
       return null;
     }
 
-    const cacheTree = this.treeCache.get(filePath);
+    const cacheTree = this._treeCache.get(filePath);
     if (cacheTree) {
       if (cacheTree.rootNode.text === content) {
         return cacheTree;
@@ -107,7 +107,7 @@ export class ParserManager {
 
     const newTree = this.xmlTreeParser.parse(content);
     if (newTree) {
-      this.treeCache.set(filePath, newTree);
+      this._treeCache.set(filePath, newTree);
     }
     return newTree;
   }

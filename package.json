@@ -2,7 +2,7 @@
   "name": "mybatis-next",
   "displayName": "mybatis-next",
   "description": "MyBatis helper for VSCode",
-  "version": "0.0.1-alpha1",
+  "version": "0.0.2",
   "publisher": "shiben",
   "engines": {
     "vscode": "^1.73.0"

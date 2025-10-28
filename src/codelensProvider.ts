@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
 import { MyBatisUtils } from "./mybatisUtils";
 import { OutputLogger } from "./outputLogs";
+import { JavaMethodInfo } from "./javaAnalyzer";
 
 export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses: vscode.EventEmitter<void> =
@@ -51,6 +52,7 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
         method.startLine,
         method.startColumn
       );
+      const returnType = this.getReturnType(classInfo.imports, method);
       const codeLens = new vscode.CodeLens(
         new vscode.Range(position, position),
         {
@@ -60,7 +62,7 @@ line: ${method.startLine}
 return: ${method.returnType || "void"}
 args: ${method.parameterStr || "empty"}`,
           command: "mybatis-next.java2Xml",
-          arguments: [javaFilePath, namespace, method.name],
+          arguments: [javaFilePath, namespace, method.name, returnType],
         }
       );
 
@@ -88,6 +90,96 @@ args: ${method.parameterStr || "empty"}`,
 
   public fire() {
     this._onDidChangeCodeLenses.fire();
+  }
+
+  private getReturnType(
+    imports: string[],
+    method: JavaMethodInfo
+  ): string | undefined {
+    if (!method.returnType) {
+      return;
+    }
+    let returnType = method.returnType.trim();
+    if (returnType === "void") {
+      return;
+    }
+
+    if (/<[^>]+>/.test(returnType)) {
+      const genericMatch = returnType.match(/^([^<]+)<(.+)>$/);
+      if (genericMatch) {
+        const genericPart = genericMatch[2];
+        const typeParameters = this.parseGenericParameters(genericPart);
+        if (typeParameters.length > 0) {
+          returnType = typeParameters[0];
+        }
+      }
+    }
+    switch (returnType) {
+      case "int":
+        return "int";
+      case "long":
+        return "long";
+      case "float":
+        return "float";
+      case "double":
+        return "double";
+      case "boolean":
+        return "boolean";
+      case "String":
+        return "java.lang.String";
+      case "Object":
+        return "java.lang.Object";
+      case "Integer":
+        return "java.lang.Integer";
+      case "Long":
+        return "java.lang.Long";
+      case "Float":
+        return "java.lang.Float";
+      case "Double":
+        return "java.lang.Double";
+      case "Boolean":
+        return "java.lang.Boolean";
+      default: {
+        const importType = imports.find(
+          (imp) => imp.endsWith("." + returnType) || imp === returnType
+        );
+        if (importType) {
+          return importType;
+        }
+        return returnType;
+      }
+    }
+  }
+
+  private parseGenericParameters(genericPart: string): string[] {
+    const parameters: string[] = [];
+    let current = "";
+    let depth = 0;
+
+    for (const element of genericPart) {
+      const char = element;
+
+      if (char === "<") {
+        depth++;
+        current += char;
+      } else if (char === ">") {
+        depth--;
+        current += char;
+      } else if (char === "," && depth === 0) {
+        // 顶级逗号，分割参数
+        parameters.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+
+    // 添加最后一个参数
+    if (current.trim()) {
+      parameters.push(current.trim());
+    }
+
+    return parameters;
   }
 }
 

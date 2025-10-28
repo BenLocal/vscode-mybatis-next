@@ -38,6 +38,50 @@
     "icon.png"
   ],
   "contributes": {
+    "configuration": [
+      {
+        "id": "mybatis-next",
+				"title": "MyBatis Next",
+        "properties": {
+          "mybatis-next.java.scanPatterns": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": ".*\\.java$",
+              "patternErrorMessage": "Pattern must end with .java"
+            },
+            "default": ["**/mapper/**/*.java"],
+            "description": "Glob patterns for scanning Java mapper files"
+          },
+          "mybatis-next.java.excludePatterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": ["**/node_modules/**", "**/target/**", "**/build/**", "**/.git/**"],
+            "description": "Glob patterns to exclude when scanning Java mapper files"
+          },
+          "mybatis-next.xml.scanPatterns": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": ".*\\.xml$",
+              "patternErrorMessage": "Pattern must end with .xml"
+            },
+            "default": ["**/*.xml"],
+            "description": "Glob patterns for scanning XML mapper files, "
+          },
+          "mybatis-next.xml.excludePatterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": ["**/node_modules/**", "**/target/**", "**/build/**", "**/.git/**"],
+            "description": "Glob patterns to exclude when scanning XML mapper files"
+          }
+        }
+      }
+    ],
     "commands": [
       {
         "command": "mybatis-next.reset",

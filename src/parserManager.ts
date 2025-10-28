@@ -80,11 +80,9 @@ export class ParserManager {
 
     const cacheTree = this.treeCache.get(filePath);
     if (cacheTree) {
-      const newTree = this.javaParser.parse(content, cacheTree);
-      if (newTree) {
-        this.treeCache.set(filePath, newTree);
+      if (cacheTree.rootNode.text === content) {
+        return cacheTree;
       }
-      return newTree;
     }
 
     const newTree = this.javaParser.parse(content);
@@ -102,11 +100,9 @@ export class ParserManager {
 
     const cacheTree = this.treeCache.get(filePath);
     if (cacheTree) {
-      const newTree = this.xmlTreeParser.parse(content, cacheTree);
-      if (newTree) {
-        this.treeCache.set(filePath, newTree);
+      if (cacheTree.rootNode.text === content) {
+        return cacheTree;
       }
-      return newTree;
     }
 
     const newTree = this.xmlTreeParser.parse(content);

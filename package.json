@@ -3,6 +3,7 @@
   "displayName": "mybatis-next",
   "description": "MyBatis helper for VSCode",
   "version": "0.0.1-alpha1",
+  "publisher": "shiben",
   "engines": {
     "vscode": "^1.73.0"
   },
@@ -11,7 +12,8 @@
   ],
   "keywords": [
     "MyBatis",
-    "Mapper"
+    "Mapper",
+    "Helper"
   ],
   "bugs": {
     "url": "https://github.com/BenLocal/vscode-mybatis-next/issues",

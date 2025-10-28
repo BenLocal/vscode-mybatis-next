@@ -1,12 +1,18 @@
 import * as vscode from "vscode";
 import * as treeSitter from "web-tree-sitter";
 import { OutputLogger } from "./outputLogs";
+import { LRUCache } from "lru-cache";
 
 export class ParserManager {
   private javaParser: treeSitter.Parser | null = null;
   private javaLanguage: treeSitter.Language | null = null;
   private xmlTreeParser: treeSitter.Parser | null = null;
   private xmlTreeLanguage: treeSitter.Language | null = null;
+  private treeCache: LRUCache<string, treeSitter.Tree> = new LRUCache({
+    max: 100,
+    ttl: 1000 * 60 * 10,
+    updateAgeOnGet: true,
+  });
 
   async initialize(context: vscode.ExtensionContext): Promise<void> {
     await treeSitter.Parser.init({
@@ -66,20 +72,47 @@ export class ParserManager {
     }
   }
 
-  parseJava(content: string): treeSitter.Tree | null {
+  parseJava(filePath: string, content: string): treeSitter.Tree | null {
     if (!this.javaParser) {
       console.error("Java language not initialized");
       return null;
     }
 
-    return this.javaParser.parse(content);
+    const cacheTree = this.treeCache.get(filePath);
+    if (cacheTree) {
+      const newTree = this.javaParser.parse(content, cacheTree);
+      if (newTree) {
+        this.treeCache.set(filePath, newTree);
+      }
+      return newTree;
+    }
+
+    const newTree = this.javaParser.parse(content);
+    if (newTree) {
+      this.treeCache.set(filePath, newTree);
+    }
+    return newTree;
   }
 
-  parseXml(content: string): treeSitter.Tree | null {
+  parseXml(filePath: string, content: string): treeSitter.Tree | null {
     if (!this.xmlTreeParser) {
       console.error("XML language not initialized");
       return null;
     }
-    return this.xmlTreeParser.parse(content);
+
+    const cacheTree = this.treeCache.get(filePath);
+    if (cacheTree) {
+      const newTree = this.xmlTreeParser.parse(content, cacheTree);
+      if (newTree) {
+        this.treeCache.set(filePath, newTree);
+      }
+      return newTree;
+    }
+
+    const newTree = this.xmlTreeParser.parse(content);
+    if (newTree) {
+      this.treeCache.set(filePath, newTree);
+    }
+    return newTree;
   }
 }

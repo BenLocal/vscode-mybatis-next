@@ -69,7 +69,7 @@ export class MappersStore {
     }
 
     try {
-      const result = this._parserManager!.parseXml(content);
+      const result = this._parserManager!.parseXml(filePath, content);
       if (!this.isMybatisMapperXmlFile(result)) {
         OutputLogger.warn(
           `File ${filePath} is not a Mybatis XML mapper file`,
@@ -143,7 +143,7 @@ export class MappersStore {
     }
 
     try {
-      const result = this._parserManager!.parseJava(content);
+      const result = this._parserManager!.parseJava(filePath, content);
       if (!result) {
         return null;
       }

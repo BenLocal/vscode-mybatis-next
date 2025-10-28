@@ -19,16 +19,26 @@ export function registerXml2JavaCommands(context: vscode.ExtensionContext) {
         const javaDocument = await vscode.workspace.openTextDocument(fileUri);
         const javaEditor = await vscode.window.showTextDocument(javaDocument);
 
-        const method = javaFile.info.methods.find(
-          (method) => method.name === id
-        );
-        if (!method) {
-          return;
+        let startPosition = null;
+        if (id) {
+          const method = javaFile.info.methods.find(
+            (method) => method.name === id
+          );
+          if (!method) {
+            return;
+          }
+          startPosition = new vscode.Position(
+            method.startLine,
+            method.startColumn
+          );
+        } else {
+          // class codelens
+          startPosition = new vscode.Position(
+            javaFile.info.classPosition.startLine,
+            javaFile.info.classPosition.startColumn
+          );
         }
-        const startPosition = new vscode.Position(
-          method.startLine,
-          method.startColumn
-        );
+
         await VscodeUtils.ensurePositionVisible(javaEditor, startPosition);
       } catch (error) {
         console.error(`Error opening XML file:`, error);

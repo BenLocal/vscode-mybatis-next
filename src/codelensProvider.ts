@@ -115,10 +115,21 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
       return [];
     }
     const mapperInfo = info.info;
-    if (!mapperInfo.sqlStatements || mapperInfo.sqlStatements.length <= 0) {
-      return [];
-    }
+    const position = new vscode.Position(0, 0);
+    const codeLens = new vscode.CodeLens(
+      new vscode.Range(position, position),
+      {
+        title: `🚀 Java Mapper`,
+        command: "mybatis-next.xml2Java",
+        arguments: [xmlFilePath, mapperInfo.namespace, null],
+      }
+    );
+
     const codeLenses: vscode.CodeLens[] = [];
+    codeLenses.push(codeLens);
+    if (!mapperInfo.sqlStatements || mapperInfo.sqlStatements.length <= 0) {
+      return codeLenses;
+    }
     for (const sqlStatement of mapperInfo.sqlStatements) {
       const position = new vscode.Position(
         sqlStatement.startLine,

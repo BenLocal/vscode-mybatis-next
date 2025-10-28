@@ -1,9 +1,11 @@
 import { JavaClassInfo } from "./javaAnalyzer";
 import * as vscode from "vscode";
 import * as treeSitter from "web-tree-sitter";
+import * as crypto from "crypto";
 
 export class MyBatisUtils {
-  private constructor() { }
+  private constructor() {
+  }
 
   public static getMapperNamespace(classInfo: JavaClassInfo): string {
     if (!classInfo.packageName) {
@@ -91,5 +93,14 @@ export class MyBatisUtils {
     }
 
     return result;
+  }
+
+  public static async calculateContextHash(content: string): Promise<string> {
+    const hashBuffer = await crypto.webcrypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(content)
+    );
+    const hash = Buffer.from(hashBuffer).toString("hex");
+    return hash;
   }
 }

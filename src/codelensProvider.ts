@@ -29,16 +29,12 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
     const classInfo = info.info;
     const namespace = MyBatisUtils.getMapperNamespace(classInfo);
     const classPosition = classInfo.classPosition;
-    const startPosition = new vscode.Position(
-      classPosition.startLine,
-      classPosition.startColumn
-    );
-    const endPosition = new vscode.Position(
+    const position = new vscode.Position(
       classPosition.startLine,
       classPosition.startColumn
     );
     const codeLens = new vscode.CodeLens(
-      new vscode.Range(startPosition, endPosition),
+      new vscode.Range(position, position),
       {
         title: `🚀  Xml Mapper`,
         command: "mybatis-next.java2Xml",
@@ -54,17 +50,11 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
     }
 
     for (const method of classInfo.methods) {
-      const startPosition = new vscode.Position(
+      const position = new vscode.Position(
         method.startLine,
         method.startColumn
       );
-      const endPosition = new vscode.Position(
-        method.startLine,
-        method.startColumn
-      );
-      const range = new vscode.Range(startPosition, endPosition);
-
-      const codeLens = new vscode.CodeLens(range, {
+      const codeLens = new vscode.CodeLens(new vscode.Range(position, position), {
         title: `🚀  Xml Mapper(${method.name})`,
         tooltip: `method: ${method.name}
 line: ${method.startLine}
@@ -79,7 +69,7 @@ args: ${method.parameters.join(", ") || "empty"}`,
     const endTime = performance.now();
     const duration = endTime - startTime;
     OutputLogger.info(
-      `Java mapper ${javaFilePath} codelens provider took ${duration}ms`,
+      `Java mapper ${javaFilePath} codelens provider took ${duration}ms, size: ${codeLenses.length}`,
       "CODE_LENS_PROVIDER"
     );
     return codeLenses;
@@ -91,7 +81,7 @@ args: ${method.parameters.join(", ") || "empty"}`,
   ): vscode.ProviderResult<vscode.CodeLens> {
     if (token.isCancellationRequested) {
       OutputLogger.info("Code lens provider cancelled", "CODE_LENS_PROVIDER");
-      return codeLens;
+      return undefined;
     }
     return codeLens;
   }
@@ -130,17 +120,11 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
     }
     const codeLenses: vscode.CodeLens[] = [];
     for (const sqlStatement of mapperInfo.sqlStatements) {
-      const startPosition = new vscode.Position(
+      const position = new vscode.Position(
         sqlStatement.startLine,
         sqlStatement.startColumn
       );
-      const endPosition = new vscode.Position(
-        sqlStatement.startLine,
-        sqlStatement.startColumn
-      );
-      const range = new vscode.Range(startPosition, endPosition);
-
-      const codeLens = new vscode.CodeLens(range, {
+      const codeLens = new vscode.CodeLens(new vscode.Range(position, position), {
         title: `🚀 Java Mapper(${sqlStatement.id})`,
         tooltip: `SQL: ${sqlStatement.id}`,
         command: "mybatis-next.xml2Java",
@@ -153,7 +137,7 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
     const endTime = performance.now();
     const duration = endTime - startTime;
     OutputLogger.info(
-      `Xml mapper ${xmlFilePath} codelens provider took ${duration}ms`,
+      `Xml mapper ${xmlFilePath} codelens provider took ${duration}ms, size: ${codeLenses.length}`,
       "CODE_LENS_PROVIDER"
     );
     return codeLenses;
@@ -165,7 +149,7 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
   ): vscode.ProviderResult<vscode.CodeLens> {
     if (token.isCancellationRequested) {
       OutputLogger.info("Code lens provider cancelled", "CODE_LENS_PROVIDER");
-      return codeLens;
+      return undefined;
     }
     return codeLens;
   }

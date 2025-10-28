@@ -7,21 +7,18 @@ import {
 import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
 import * as treeSitter from "web-tree-sitter";
-import * as crypto from "crypto";
 import { MyBatisUtils } from "./mybatisUtils";
 import { BiMap } from "@rimbu/bimap";
 import { OutputLogger } from "./outputLogs";
 
 export interface JavaMapperInfo {
   file: vscode.Uri | string;
-  tree: treeSitter.Tree;
   info: JavaClassInfo;
   context_hash: string;
 }
 
 export interface XmlMapperInfo {
   file: vscode.Uri | string;
-  result: XmlParseResult;
   info: MyBatisMapperInfo;
   context_hash: string;
 }
@@ -65,32 +62,29 @@ export class MappersStore {
       return null;
     }
     const content = doc.getText();
-    const contextHash = await this.calculateContextHash(content);
+    const contextHash = await MyBatisUtils.calculateContextHash(content);
     // check if the file is already in the _xmlFiles
     const filePath = MyBatisUtils.getFilePath(file);
-    if (this._xmlFiles.has(filePath)) {
-      const xmlMapperInfo = this._xmlFiles.get(filePath)!;
-      if (xmlMapperInfo.context_hash === contextHash) {
-        return xmlMapperInfo;
-      }
+    const xmlMapperInfo = this._xmlFiles.get(filePath);
+    if (xmlMapperInfo && xmlMapperInfo.context_hash === contextHash) {
+      return xmlMapperInfo;
     }
 
-    const result = this._parserManager!.parseXml(content);
-    if (!this.isMybatisMapperXmlFile(result)) {
-      OutputLogger.warn(
-        `File ${filePath} is not a Mybatis XML mapper file`,
-        "MAPPERS_STORE"
-      );
-      return null;
-    }
     try {
+      const result = this._parserManager!.parseXml(content);
+      if (!this.isMybatisMapperXmlFile(result)) {
+        OutputLogger.warn(
+          `File ${filePath} is not a Mybatis XML mapper file`,
+          "MAPPERS_STORE"
+        );
+        return null;
+      }
       const info = XmlAnalyzer.analyzeMapperXml(result!, content);
       if (!info) {
         return null;
       }
       const xmlMapperInfo: XmlMapperInfo = {
         file,
-        result: result!,
         info: info,
         context_hash: contextHash,
       };
@@ -175,13 +169,10 @@ export class MappersStore {
 
     const content = doc.getText();
     const filePath = MyBatisUtils.getFilePath(file);
-    const contextHash = await this.calculateContextHash(content);
-
-    if (this._javaFiles.has(filePath)) {
-      const javaMapperInfo = this._javaFiles.get(filePath)!;
-      if (javaMapperInfo.context_hash === contextHash) {
-        return javaMapperInfo;
-      }
+    const contextHash = await MyBatisUtils.calculateContextHash(content);
+    const javaMapperInfo = this._javaFiles.get(filePath);
+    if (javaMapperInfo && javaMapperInfo.context_hash === contextHash) {
+      return javaMapperInfo;
     }
 
     try {
@@ -199,7 +190,6 @@ export class MappersStore {
       }
       const javaMapperInfo: JavaMapperInfo = {
         file,
-        tree: result,
         info: info!,
         context_hash: contextHash,
       };
@@ -231,7 +221,14 @@ export class MappersStore {
       }
     }
     if (!importMybatis) {
-      return false;
+      // get xml namespace
+      const namespace = MyBatisUtils.getMapperNamespace(info);
+      const hasMatchingNamespace = Array.from(this._xmlFiles.values()).some(
+        (xmlFile: XmlMapperInfo) => xmlFile.info.namespace === namespace
+      );
+      if (!hasMatchingNamespace) {
+        return false;
+      }
     }
 
     return true;
@@ -292,15 +289,6 @@ export class MappersStore {
       xmlFilePath
     );
     return bestJavaFile;
-  }
-
-  private async calculateContextHash(content: string): Promise<string> {
-    const hashBuffer = await crypto.webcrypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(content)
-    );
-    const hash = Buffer.from(hashBuffer).toString("hex");
-    return hash;
   }
 
   public getMappersCount(): { xmlCount: number; javaCount: number } {

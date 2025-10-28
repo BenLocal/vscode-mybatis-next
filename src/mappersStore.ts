@@ -1,8 +1,6 @@
 import * as vscode from "vscode";
 import {
-  XmlParseResult,
   ParserManager,
-  FastXmlParseDataResult,
 } from "./parserManager";
 import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
@@ -79,7 +77,7 @@ export class MappersStore {
         );
         return null;
       }
-      const info = XmlAnalyzer.analyzeMapperXml(result!, content);
+      const info = XmlAnalyzer.analyzeTree(result!);
       if (!info) {
         return null;
       }
@@ -100,42 +98,11 @@ export class MappersStore {
     }
   }
 
-  private isMybatisMapperXmlFile(result: XmlParseResult | null): boolean {
-    if (!result) {
+  private isMybatisMapperXmlFile(tree: treeSitter.Tree | null): boolean {
+    if (!tree) {
       return false;
     }
-
-    if (result.type === "tree-sitter") {
-      return this.isMybatisMapperXmlFileTreeSitter(result);
-    } else if (result.type === "fast-xml-parser") {
-      return this.isMybatisMapperXmlFileFastXmlParser(result);
-    }
-
-    return true;
-  }
-
-  private isMybatisMapperXmlFileFastXmlParser(
-    data: FastXmlParseDataResult | null
-  ): boolean {
-    if (!data || !data.mapper || !data.mapper["@_namespace"]) {
-      return false;
-    }
-    return true;
-  }
-
-  private isMybatisMapperXmlFileTreeSitter(
-    result: XmlParseResult | null
-  ): boolean {
-    if (!result) {
-      return false;
-    }
-    if (!result.tree) {
-      return false;
-    }
-    if (!this.hasMybatisDoctypeDeclaration(result.tree.rootNode)) {
-      return false;
-    }
-    return true;
+    return this.hasMybatisDoctypeDeclaration(tree.rootNode);
   }
 
   private hasMybatisDoctypeDeclaration(rootNode: treeSitter.Node): boolean {

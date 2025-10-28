@@ -20,7 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
   OutputLogger.info("MyBatis Next extension activated", "EXTENSION");
 
   // Initialize parser manager
-  parserManager = new ParserManager("tree-sitter");
+  parserManager = new ParserManager();
   await parserManager.initialize(context);
 
   MappersStore.getInstance().initialize(context, parserManager);

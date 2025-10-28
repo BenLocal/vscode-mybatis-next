@@ -22,12 +22,13 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
         if (!xmlFile) {
           return;
         }
-        const fileUri = MyBatisUtils.getFilePath(xmlFile.file);
-        const xmlDocument = await vscode.workspace.openTextDocument(fileUri);
-        const xmlEditor = await vscode.window.showTextDocument(xmlDocument);
         const sqlStatement = xmlFile.info.sqlStatements.find(
           (sqlStatement) => sqlStatement.id === methodName
         );
+
+        const fileUri = MyBatisUtils.getFilePath(xmlFile.file);
+        const xmlDocument = await vscode.workspace.openTextDocument(fileUri);
+        const xmlEditor = await vscode.window.showTextDocument(xmlDocument);
         if (!sqlStatement) {
           await promptToAddXmlContent(xmlEditor, methodName, namespace);
           return;

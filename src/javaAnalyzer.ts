@@ -18,13 +18,12 @@ export interface JavaMethodInfo {
   name: string;
   returnType?: string;
   parameters: string[];
+  parameterStr: string;
   isStatic: boolean;
   isPublic: boolean;
   isPrivate: boolean;
   isProtected: boolean;
   isAbstract: boolean;
-  line: number;
-  column: number;
   startLine: number;
   startColumn: number;
   endLine: number;
@@ -36,9 +35,31 @@ export class JavaAnalyzer {
     if (!tree) {
       return null;
     }
+    const scm = `
+(program
+  (package_declaration (scoped_identifier) @package_name)?
+  (import_declaration (scoped_identifier) @import_name)*
+  (interface_declaration
+  	(modifiers)? @interface_modifiers
+    name: (identifier) @interface_name
+    body: (interface_body
+    	(method_declaration
+          (modifiers)* @method_modifiers
+          type: (_) @method_return
+          name: (identifier) @method_name
+          parameters: (formal_parameters) @method_parameters
+        ) @method_decl
+    )
+  ) @interface_decl
+)
+    `;
+    const query = new treeSitter.Query(tree.language, scm);
+    const matches = query.matches(tree.rootNode);
+    if (matches.length === 0) {
+      return null;
+    }
 
-    const rootNode = tree.rootNode;
-    const classInfo: JavaClassInfo = {
+    let info: JavaClassInfo = {
       className: "",
       classType: "class",
       methods: [],
@@ -50,247 +71,123 @@ export class JavaAnalyzer {
         endColumn: 0,
       },
     };
-
-    // 遍历 AST 节点
-    this.traverseNode(rootNode, classInfo);
-
-    return classInfo.className ? classInfo : null;
-  }
-
-  private static traverseNode(
-    node: treeSitter.Node,
-    classInfo: JavaClassInfo
-  ): void {
-    this.processNode(node, classInfo);
-
-    // 递归遍历子节点
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child) {
-        this.traverseNode(child, classInfo);
-      }
+    let queryClassInfo = false;
+    for (const match of matches) {
+      this.queryClassInfo(match, info, queryClassInfo);
+      queryClassInfo = true;
     }
+
+    return info;
   }
 
-  private static processNode(
-    node: treeSitter.Node,
-    classInfo: JavaClassInfo
-  ): void {
-    switch (node.type) {
-      case "package_declaration":
-        classInfo.packageName = this.extractPackageName(node);
-        break;
-
-      case "import_declaration": {
-        const importName = this.extractImportName(node);
-        if (importName) {
-          classInfo.imports.push(importName);
-        }
-        break;
-      }
-
-      case "class_declaration":
-        this.processClassDeclaration(node, classInfo, "class");
-        break;
-
-      case "interface_declaration":
-        this.processClassDeclaration(node, classInfo, "interface");
-        break;
-
-      case "enum_declaration":
-        this.processClassDeclaration(node, classInfo, "enum");
-        break;
-
-      case "annotation_type_declaration":
-        this.processClassDeclaration(node, classInfo, "annotation");
-        break;
-
-      case "method_declaration": {
-        const methodInfo = this.extractMethodInfo(node);
-        if (methodInfo) {
-          classInfo.methods.push(methodInfo);
-        }
-        break;
-      }
-    }
-  }
-
-  private static processClassDeclaration(
-    node: treeSitter.Node,
-    classInfo: JavaClassInfo,
-    classType: JavaClassInfo["classType"]
-  ): void {
-    if (!classInfo.className) {
-      classInfo.className = this.extractIdentifierName(node);
-      classInfo.classType = classType;
-      classInfo.classPosition = {
-        startLine: node.startPosition.row,
-        startColumn: node.startPosition.column,
-        endLine: node.endPosition.row,
-        endColumn: node.endPosition.column,
-      };
-    }
-  }
-
-  private static extractPackageName(node: treeSitter.Node): string {
-    // 查找 package 声明中的标识符
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child) {
-        if (child.type === "scoped_identifier" || child.type === "identifier") {
-          return child.text;
-        }
-      }
-    }
-    return "";
-  }
-
-  private static extractImportName(node: treeSitter.Node): string | null {
-    // 查找 import 声明中的标识符
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (
-        child &&
-        (child.type === "scoped_identifier" || child.type === "identifier")
-      ) {
-        return child.text;
-      }
-    }
-    return null;
-  }
-
-  private static extractIdentifierName(node: treeSitter.Node): string {
-    // 查找节点中的标识符
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child && child.type === "identifier") {
-        return child.text;
-      }
-    }
-    return "";
-  }
-
-  private static extractClassName(node: treeSitter.Node): string {
-    return this.extractIdentifierName(node);
-  }
-
-  private static extractInterfaceName(node: treeSitter.Node): string {
-    return this.extractIdentifierName(node);
-  }
-
-  private static extractEnumName(node: treeSitter.Node): string {
-    return this.extractIdentifierName(node);
-  }
-
-  private static extractAnnotationName(node: treeSitter.Node): string {
-    return this.extractIdentifierName(node);
-  }
-
-  private static extractMethodInfo(
-    node: treeSitter.Node
-  ): JavaMethodInfo | null {
-    const methodInfo: JavaMethodInfo = {
+  static queryClassInfo(match: treeSitter.QueryMatch, info: JavaClassInfo, queryClassInfo: boolean): void {
+    let methodInfo: JavaMethodInfo = {
       name: "",
       parameters: [],
+      parameterStr: "",
       isStatic: false,
       isPublic: false,
       isPrivate: false,
       isProtected: false,
       isAbstract: false,
-      line: node.startPosition.row,
-      column: node.startPosition.column,
-      startLine: node.startPosition.row,
-      startColumn: node.startPosition.column,
-      endLine: node.endPosition.row,
-      endColumn: node.endPosition.column,
+      startLine: 0,
+      startColumn: 0,
+      endLine: 0,
+      endColumn: 0,
+      returnType: "",
     };
 
-    // 提取修饰符
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child) {
-        switch (child.type) {
-          case "modifiers":
-            this.extractModifiers(child, methodInfo);
-            break;
-          case "identifier":
-            if (!methodInfo.name) {
-              methodInfo.name = child.text;
-            }
-            break;
-          case "formal_parameters":
-            methodInfo.parameters = this.extractParameters(child);
-            break;
-          case "type":
-            methodInfo.returnType = child.text;
-            break;
+    for (const capture of match.captures) {
+      const node = capture.node;
+      const captureName = capture.name;
+      switch (captureName) {
+        case "package_name":
+          if (queryClassInfo) {
+            continue;
+          }
+
+          info.packageName = node.text;
+          break;
+        case "import_name":
+          if (queryClassInfo) {
+            continue;
+          }
+          info.imports.push(node.text);
+          break;
+        case "interface_name":
+          if (queryClassInfo) {
+            continue;
+          }
+          info.className = node.text;
+          info.classType = "interface";
+          info.classPosition = {
+            startLine: node.startPosition.row,
+            startColumn: node.startPosition.column,
+            endLine: node.endPosition.row,
+            endColumn: node.endPosition.column,
+          };
+          break;
+        case "method_decl":
+          methodInfo.startLine = node.startPosition.row;
+          methodInfo.startColumn = node.startPosition.column;
+          methodInfo.endLine = node.endPosition.row;
+          methodInfo.endColumn = node.endPosition.column;
+          break;
+        case "method_modifiers":
+          const modifiers = this.extractJavaMethodModifiers(capture.node);
+          if (modifiers.includes('default') || modifiers.includes('static')) {
+            return;
+          }
+          break;
+        case "method_return":
+          let returnType = capture.node.text.trim();
+          if (returnType === 'void' || capture.node.type === 'void_type') {
+            returnType = 'void';
+          }
+          methodInfo.returnType = returnType;
+          break;
+        case "method_name":
+          methodInfo.name = node.text;
+          break;
+        case "method_parameters":
+          methodInfo.parameters = this.extractJavaMethodParameters(node);
+          methodInfo.parameterStr = node.text;
+          break;
+      }
+    }
+
+    if (methodInfo.name) {
+      info.methods.push(methodInfo);
+    }
+  }
+
+  private static extractJavaMethodModifiers(node: treeSitter.Node): string[] {
+    const modifiers: string[] = [];
+
+    if (node.type === 'modifiers') {
+      for (let i = 0; i < node.childCount; i++) {
+        const child = node.child(i);
+        if (child && child.type === 'modifier') {
+          modifiers.push(child.text.trim());
         }
       }
     }
 
-    return methodInfo.name ? methodInfo : null;
+    return modifiers;
   }
 
-  private static extractModifiers(
-    node: treeSitter.Node,
-    methodInfo: JavaMethodInfo
-  ): void {
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child && child.type === "identifier") {
-        switch (child.text) {
-          case "public":
-            methodInfo.isPublic = true;
-            break;
-          case "private":
-            methodInfo.isPrivate = true;
-            break;
-          case "protected":
-            methodInfo.isProtected = true;
-            break;
-          case "static":
-            methodInfo.isStatic = true;
-            break;
-          case "abstract":
-            methodInfo.isAbstract = true;
-            break;
-        }
-      }
-    }
-  }
-
-  private static extractParameters(node: treeSitter.Node): string[] {
+  private static extractJavaMethodParameters(node: treeSitter.Node): string[] {
     const parameters: string[] = [];
 
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (child && child.type === "formal_parameter") {
-        // 提取参数类型和名称
-        const paramType = this.extractParameterType(child);
-        const paramName = this.extractParameterName(child);
-        if (paramType && paramName) {
-          parameters.push(`${paramType} ${paramName}`);
+    if (node.type === 'formal_parameters') {
+      for (let i = 0; i < node.childCount; i++) {
+        const child = node.child(i);
+        if (child && child.type === 'formal_parameter') {
+          parameters.push(child.text.trim());
         }
       }
     }
 
     return parameters;
-  }
-
-  private static extractParameterType(node: treeSitter.Node): string {
-    for (let i = 0; i < node.childCount; i++) {
-      const child = node.child(i);
-      if (
-        child &&
-        (child.type === "type" || child.type === "scoped_type_identifier")
-      ) {
-        return child.text;
-      }
-    }
-    return "";
-  }
-
-  private static extractParameterName(node: treeSitter.Node): string {
-    return this.extractIdentifierName(node);
   }
 }

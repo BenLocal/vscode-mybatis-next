@@ -7,7 +7,12 @@ import { OutputLogger } from "./outputLogs";
 export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
     "mybatis-next.java2Xml",
-    async (javaFilePath: string, namespace: string, methodName: string) => {
+    async (
+      javaFilePath: string,
+      namespace: string,
+      methodName: string,
+      returnType: string
+    ) => {
       try {
         if (!methodName) {
           // class codelens
@@ -30,7 +35,12 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
         const xmlDocument = await vscode.workspace.openTextDocument(fileUri);
         const xmlEditor = await vscode.window.showTextDocument(xmlDocument);
         if (!sqlStatement) {
-          await promptToAddXmlContent(xmlEditor, methodName, namespace);
+          await promptToAddXmlContent(
+            xmlEditor,
+            methodName,
+            namespace,
+            returnType
+          );
           return;
         }
         const startPosition = new vscode.Position(
@@ -49,7 +59,8 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
 async function promptToAddXmlContent(
   editor: vscode.TextEditor,
   methodName: string,
-  namespace: string
+  namespace: string,
+  returnType: string
 ) {
   // 显示信息提示
   const message = `Method "${methodName}" not found in XML mappings.Add XML content ?`;
@@ -59,15 +70,16 @@ async function promptToAddXmlContent(
     "Cancel"
   );
   if (action === "Add XML Content") {
-    await addXmlContent(editor, methodName, namespace);
+    await addXmlContent(editor, methodName, namespace, returnType);
   }
 
   async function addXmlContent(
     editor: vscode.TextEditor,
     methodName: string,
-    namespace: string
+    namespace: string,
+    returnType: string
   ) {
-    const xmlTemplate = generateXmlTemplate(methodName);
+    const xmlTemplate = generateXmlTemplate(methodName, returnType);
     const mapperEndPosition = findBestInsertPosition(editor.document);
 
     if (mapperEndPosition) {
@@ -102,22 +114,18 @@ async function promptToAddXmlContent(
     }
   }
 
-  function generateXmlTemplate(methodName: string): string {
+  function generateXmlTemplate(methodName: string, returnType: string): string {
     const methodNameLower = methodName.toLowerCase();
+    let resultType = "";
+    if (returnType) {
+      resultType = ` resultType="${returnType.trim()}"`;
+    }
     if (
-      methodNameLower.startsWith("select") ||
-      methodNameLower.startsWith("get") ||
-      methodNameLower.startsWith("find")
-    ) {
-      return `    <select id = "${methodName}">
-    </select>
-`;
-    } else if (
       methodNameLower.startsWith("insert") ||
       methodNameLower.startsWith("add") ||
       methodNameLower.startsWith("create")
     ) {
-      return `    <insert id = "${methodName}">
+      return `    <insert id = "${methodName}"${resultType}>
     </insert>
 `;
     } else if (
@@ -125,18 +133,18 @@ async function promptToAddXmlContent(
       methodNameLower.startsWith("modify") ||
       methodNameLower.startsWith("edit")
     ) {
-      return `    <update id = "${methodName}">
+      return `    <update id = "${methodName}"${resultType}>
     </update>
 `;
     } else if (
       methodNameLower.startsWith("delete") ||
       methodNameLower.startsWith("remove")
     ) {
-      return `    <delete id="${methodName}">
+      return `    <delete id="${methodName}"${resultType}>
     </delete>
 `;
     } else {
-      return `    <select id = "${methodName}">
+      return `    <select id = "${methodName}"${resultType}>
     </select>
 `;
     }

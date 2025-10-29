@@ -10,12 +10,14 @@ import { registerJava2XmlCommands } from "./java2XmlCommand";
 import { registerXml2JavaCommands } from "./xml2JavaCommand";
 import { OutputLogger } from "./outputLogs";
 import { MybatisFileSystemWatcher } from "./fileSystemWatcher";
+import { XmlTypeDefinitionProvider } from "./definitionProvider";
 
 let parserManager: ParserManager;
 let javaMapperCodelensProvider: JavaMapperCodelensProvider;
 let xmlMapperCodelensProvider: XmlMapperCodelensProvider;
 let statusBarItem: vscode.StatusBarItem;
 let fileSystemWatcher: MybatisFileSystemWatcher;
+let xmlTypeDefinitionProvider: XmlTypeDefinitionProvider;
 
 export async function activate(context: vscode.ExtensionContext) {
   OutputLogger.initialize(context);
@@ -36,6 +38,12 @@ export async function activate(context: vscode.ExtensionContext) {
   vscode.languages.registerCodeLensProvider(
     { language: "xml" },
     xmlMapperCodelensProvider
+  );
+
+  xmlTypeDefinitionProvider = new XmlTypeDefinitionProvider();
+  vscode.languages.registerDefinitionProvider(
+    { language: "xml" },
+    xmlTypeDefinitionProvider
   );
 
   registerCommands(context);

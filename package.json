@@ -51,7 +51,7 @@
               "patternErrorMessage": "Pattern must end with .java"
             },
             "default": [
-              "**/mapper/**/*.java"
+              "**/*.java"
             ],
             "description": "Glob patterns for scanning Java mapper files"
           },

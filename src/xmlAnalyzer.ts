@@ -17,12 +17,7 @@ export interface SqlStatementInfo {
   endColumn: number;
 }
 
-export class XmlAnalyzer {
-  static analyzeTree(tree: treeSitter.Tree): MyBatisMapperInfo | null {
-    if (!tree) {
-      return null;
-    }
-    const scm = `
+const XML_FILE_QUERY: string = `
 (document
   root: (element
     (STag
@@ -48,7 +43,13 @@ export class XmlAnalyzer {
 )
     `;
 
-    const query = new treeSitter.Query(tree.language, scm);
+export class XmlAnalyzer {
+  static analyzeTree(tree: treeSitter.Tree): MyBatisMapperInfo | null {
+    if (!tree) {
+      return null;
+    }
+
+    const query = new treeSitter.Query(tree.language, XML_FILE_QUERY);
     const matches = query.matches(tree.rootNode);
     if (matches.length === 0) {
       return null;

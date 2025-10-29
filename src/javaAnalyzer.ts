@@ -31,12 +31,7 @@ export interface JavaMethodInfo {
   endColumn: number;
 }
 
-export class JavaAnalyzer {
-  static analyzeTree(tree: treeSitter.Tree): JavaClassInfo | null {
-    if (!tree) {
-      return null;
-    }
-    const scm = `
+const JAVA_FILE_QUERY: string = `
 (program
   (package_declaration (scoped_identifier) @package_name)?
   (import_declaration (scoped_identifier) @import_name)*
@@ -69,7 +64,14 @@ export class JavaAnalyzer {
   ) @interface_decl
 )
     `;
-    const query = new treeSitter.Query(tree.language, scm);
+
+export class JavaAnalyzer {
+  static analyzeTree(tree: treeSitter.Tree): JavaClassInfo | null {
+    if (!tree) {
+      return null;
+    }
+
+    const query = new treeSitter.Query(tree.language, JAVA_FILE_QUERY);
     const matches = query.matches(tree.rootNode);
     if (matches.length === 0) {
       return null;

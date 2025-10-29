@@ -19,6 +19,8 @@ export interface XmlMapperInfo {
   context_hash: string;
 }
 
+const MAYBE_MYBATIS_JAVA_FILE_IMPORTS: string[] = ["org.apache.ibatis.annotations.Param"];
+
 export class MappersStore {
   private static instance: MappersStore;
 
@@ -182,6 +184,7 @@ export class MappersStore {
     }
   }
 
+
   private isMybatisJavaFile(info: JavaClassInfo | null): boolean {
     if (!info) {
       return false;
@@ -196,13 +199,8 @@ export class MappersStore {
     } else if (info.classAnnotations.includes("Mapper") &&
       info.imports.includes("org.apache.ibatis.annotations.Mapper")) {
       importMybatis = true;
-    } else {
-      for (const importName of info.imports) {
-        if (importName.startsWith("org.apache.ibatis.")) {
-          importMybatis = true;
-          break;
-        }
-      }
+    } else if (info.imports.some(importName => MAYBE_MYBATIS_JAVA_FILE_IMPORTS.includes(importName))) {
+      importMybatis = true;
     }
 
     if (!importMybatis) {

@@ -4,6 +4,7 @@ export interface JavaClassInfo {
   packageName?: string;
   className: string;
   classType: "class" | "interface" | "enum" | "annotation";
+  classAnnotations: string[];
   methods: JavaMethodInfo[];
   imports: string[];
   classPosition: {
@@ -40,7 +41,22 @@ export class JavaAnalyzer {
   (package_declaration (scoped_identifier) @package_name)?
   (import_declaration (scoped_identifier) @import_name)*
   (interface_declaration
-  	(modifiers)? @interface_modifiers
+  	(modifiers
+    	[
+      	(marker_annotation
+          name: (identifier) @interface_annotation_name
+        )
+        (marker_annotation
+          name: (scoped_identifier) @interface_annotation_name
+        )
+      	(annotation
+          name: (identifier) @interface_annotation_name
+        )
+        (annotation
+          name: (scoped_identifier) @interface_annotation_name
+        )
+      ]?
+    )? @interface_modifiers
     name: (identifier) @interface_name
     body: (interface_body
     	(method_declaration
@@ -49,7 +65,7 @@ export class JavaAnalyzer {
           name: (identifier) @method_name
           parameters: (formal_parameters) @method_parameters
         ) @method_decl
-    )
+    )?
   ) @interface_decl
 )
     `;
@@ -70,6 +86,7 @@ export class JavaAnalyzer {
         endLine: 0,
         endColumn: 0,
       },
+      classAnnotations: [],
     };
     let queryClassInfo = false;
     for (const match of matches) {
@@ -130,6 +147,12 @@ export class JavaAnalyzer {
             endLine: node.endPosition.row,
             endColumn: node.endPosition.column,
           };
+          break;
+        case "interface_annotation_name":
+          if (queryClassInfo) {
+            continue;
+          }
+          info.classAnnotations.push(node.text);
           break;
         case "method_decl":
           methodInfo.startLine = node.startPosition.row;

@@ -191,12 +191,20 @@ export class MappersStore {
     }
 
     let importMybatis = false;
-    for (const importName of info.imports) {
-      if (importName.startsWith("org.apache.ibatis.")) {
-        importMybatis = true;
-        break;
+    if (info.classAnnotations.includes("org.apache.ibatis.annotations.Mapper")) {
+      importMybatis = true;
+    } else if (info.classAnnotations.includes("Mapper") &&
+      info.imports.includes("org.apache.ibatis.annotations.Mapper")) {
+      importMybatis = true;
+    } else {
+      for (const importName of info.imports) {
+        if (importName.startsWith("org.apache.ibatis.")) {
+          importMybatis = true;
+          break;
+        }
       }
     }
+
     if (!importMybatis) {
       // get xml namespace
       const namespace = MyBatisUtils.getMapperNamespace(info);

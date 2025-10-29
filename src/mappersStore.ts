@@ -4,7 +4,6 @@ import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
 import * as treeSitter from "web-tree-sitter";
 import { MyBatisUtils } from "./mybatisUtils";
-import { BiMap } from "@rimbu/bimap";
 import { OutputLogger } from "./outputLogs";
 import { TwoWayMap } from "./twoWayMap";
 

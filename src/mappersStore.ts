@@ -6,6 +6,7 @@ import * as treeSitter from "web-tree-sitter";
 import { MyBatisUtils } from "./mybatisUtils";
 import { BiMap } from "@rimbu/bimap";
 import { OutputLogger } from "./outputLogs";
+import { TwoWayMap } from "./twoWayMap";
 
 export interface JavaMapperInfo {
   file: vscode.Uri | string;
@@ -19,7 +20,9 @@ export interface XmlMapperInfo {
   context_hash: string;
 }
 
-const MAYBE_MYBATIS_JAVA_FILE_IMPORTS: string[] = ["org.apache.ibatis.annotations.Param"];
+const MAYBE_MYBATIS_JAVA_FILE_IMPORTS: Set<string> = new Set([
+  "org.apache.ibatis.annotations.Param",
+]);
 
 export class MappersStore {
   private static instance: MappersStore;
@@ -27,7 +30,7 @@ export class MappersStore {
   private readonly _xmlFiles: Map<string, XmlMapperInfo> = new Map();
   private readonly _javaFiles: Map<string, JavaMapperInfo> = new Map();
   // key is java file path, value is best xml file path
-  private readonly _bestMapper: BiMap<string, string> = BiMap.empty<
+  private readonly _bestMapper: TwoWayMap<string, string> = new TwoWayMap<
     string,
     string
   >();
@@ -101,13 +104,13 @@ export class MappersStore {
   public async removeXmlFile(file: vscode.Uri | string): Promise<void> {
     const filePath = MyBatisUtils.getFilePath(file);
     this._xmlFiles.delete(filePath);
-    this._bestMapper.removeKeys(filePath);
+    this._bestMapper.removeValue(filePath);
   }
 
   public async removeJavaFile(file: vscode.Uri | string): Promise<void> {
     const filePath = MyBatisUtils.getFilePath(file);
     this._javaFiles.delete(filePath);
-    this._bestMapper.removeValues(filePath);
+    this._bestMapper.removeKey(filePath);
   }
 
   private isMybatisMapperXmlFile(tree: treeSitter.Tree | null): boolean {
@@ -184,7 +187,6 @@ export class MappersStore {
     }
   }
 
-
   private isMybatisJavaFile(info: JavaClassInfo | null): boolean {
     if (!info) {
       return false;
@@ -194,12 +196,20 @@ export class MappersStore {
     }
 
     let importMybatis = false;
-    if (info.classAnnotations.includes("org.apache.ibatis.annotations.Mapper")) {
+    if (
+      info.classAnnotations.includes("org.apache.ibatis.annotations.Mapper")
+    ) {
       importMybatis = true;
-    } else if (info.classAnnotations.includes("Mapper") &&
-      info.imports.includes("org.apache.ibatis.annotations.Mapper")) {
+    } else if (
+      info.classAnnotations.includes("Mapper") &&
+      info.imports.includes("org.apache.ibatis.annotations.Mapper")
+    ) {
       importMybatis = true;
-    } else if (info.imports.some(importName => MAYBE_MYBATIS_JAVA_FILE_IMPORTS.includes(importName))) {
+    } else if (
+      info.imports.some((importName) =>
+        MAYBE_MYBATIS_JAVA_FILE_IMPORTS.has(importName)
+      )
+    ) {
       importMybatis = true;
     }
 
@@ -221,8 +231,8 @@ export class MappersStore {
     javaFilePath: string,
     namespace: string
   ): XmlMapperInfo | null {
-    if (this._bestMapper.hasKey(javaFilePath)) {
-      const xmlfile = this._bestMapper.getKey(javaFilePath);
+    if (this._bestMapper.hasValue(javaFilePath)) {
+      const xmlfile = this._bestMapper.getValue(javaFilePath);
       if (xmlfile && this._xmlFiles.has(xmlfile)) {
         return this._xmlFiles.get(xmlfile)!;
       }
@@ -235,13 +245,18 @@ export class MappersStore {
       return null;
     }
 
-    const nonTargetFiles = files.filter((file) => {
-      const filePath = MyBatisUtils.getFilePath(file.file);
-      return !filePath.includes("/target/") && !filePath.includes("\\target\\");
-    });
-    const bestXmlFile =
-      nonTargetFiles.length > 0 ? nonTargetFiles[0] : files[0];
-    this._bestMapper.set(
+    const sortedFiles = files
+      .map((file): { file: XmlMapperInfo; distance: number } => {
+        const filePath = MyBatisUtils.getFilePath(file.file);
+        return {
+          file: file,
+          distance: MyBatisUtils.filePathDistance(filePath, javaFilePath),
+        };
+      })
+      .filter((file) => file.distance >= 0)
+      .sort((a, b) => a.distance - b.distance); // ascending order
+    const bestXmlFile = sortedFiles.length > 0 ? sortedFiles[0].file : files[0];
+    this._bestMapper.onlyAddKey(
       javaFilePath,
       MyBatisUtils.getFilePath(bestXmlFile.file)
     );
@@ -252,8 +267,8 @@ export class MappersStore {
     xmlFilePath: string,
     namespace: string
   ): JavaMapperInfo | null {
-    if (this._bestMapper.hasValue(xmlFilePath)) {
-      const javaFilePath = this._bestMapper.getValue(xmlFilePath);
+    if (this._bestMapper.hasKey(xmlFilePath)) {
+      const javaFilePath = this._bestMapper.getKey(xmlFilePath);
       if (javaFilePath && this._javaFiles.has(javaFilePath)) {
         return this._javaFiles.get(javaFilePath)!;
       }
@@ -266,10 +281,22 @@ export class MappersStore {
       return null;
     }
 
-    const bestJavaFile = files[0];
-    this._bestMapper.set(
-      MyBatisUtils.getFilePath(bestJavaFile.file),
-      xmlFilePath
+    const sortedFiles = files
+      .map((file): { file: JavaMapperInfo; distance: number } => {
+        const filePath = MyBatisUtils.getFilePath(file.file);
+        return {
+          file: file,
+          distance: MyBatisUtils.filePathDistance(filePath, xmlFilePath),
+        };
+      })
+      .filter((file) => file.distance >= 0)
+      .sort((a, b) => a.distance - b.distance); // ascending order
+
+    const bestJavaFile =
+      sortedFiles.length > 0 ? sortedFiles[0].file : files[0];
+    this._bestMapper.onlyAddValue(
+      xmlFilePath,
+      MyBatisUtils.getFilePath(bestJavaFile.file)
     );
     return bestJavaFile;
   }
@@ -284,6 +311,6 @@ export class MappersStore {
   public cleanup(): void {
     this._xmlFiles.clear();
     this._javaFiles.clear();
-    this._bestMapper.removeKeys(this._bestMapper.streamKeys());
+    this._bestMapper.clear();
   }
 }

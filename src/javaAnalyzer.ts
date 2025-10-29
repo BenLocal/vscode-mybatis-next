@@ -91,8 +91,9 @@ export class JavaAnalyzer {
       classAnnotations: [],
     };
     let queryClassInfo = false;
+    let methodNodeMap = new Map<string, string>();
     for (const match of matches) {
-      this.queryClassInfo(match, info, queryClassInfo);
+      this.queryClassInfo(match, info, queryClassInfo, methodNodeMap);
       queryClassInfo = true;
     }
 
@@ -102,7 +103,8 @@ export class JavaAnalyzer {
   static queryClassInfo(
     match: treeSitter.QueryMatch,
     info: JavaClassInfo,
-    queryClassInfo: boolean
+    queryClassInfo: boolean,
+    methodNodeMap: Map<string, string>
   ): void {
     let methodInfo: JavaMethodInfo = {
       name: "",
@@ -119,6 +121,8 @@ export class JavaAnalyzer {
       endColumn: 0,
       returnType: "",
     };
+
+    let methodNode: treeSitter.Node | null = null;
 
     for (const capture of match.captures) {
       const node = capture.node;
@@ -157,6 +161,7 @@ export class JavaAnalyzer {
           info.classAnnotations.push(node.text);
           break;
         case "method_decl":
+          methodNode = node;
           methodInfo.startLine = node.startPosition.row;
           methodInfo.startColumn = node.startPosition.column;
           methodInfo.endLine = node.endPosition.row;
@@ -186,7 +191,8 @@ export class JavaAnalyzer {
       }
     }
 
-    if (methodInfo.name) {
+    if (methodInfo.name && methodNode && !methodNodeMap.has(methodNode.text)) {
+      methodNodeMap.set(methodNode.text, methodInfo.name);
       info.methods.push(methodInfo);
     }
   }

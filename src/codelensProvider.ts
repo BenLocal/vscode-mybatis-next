@@ -59,7 +59,7 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
           title: `🚀  Xml Mapper(${method.name})`,
           tooltip: `method: ${method.name}
 line: ${method.startLine}
-return: ${method.returnType || "void"}
+return: ${returnType}
 args: ${method.parameterStr || "empty"}`,
           command: "mybatis-next.java2Xml",
           arguments: [javaFilePath, namespace, method.name, returnType],

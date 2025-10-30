@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as treeSitter from "web-tree-sitter";
 
 export class VscodeUtils {
   private constructor() { }
@@ -17,3 +18,23 @@ export class VscodeUtils {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 }
+
+export interface TextPosition {
+  text: string;
+  startPosition: vscode.Position;
+  endPosition: vscode.Position;
+}
+
+export declare namespace TextPosition {
+  function createByNode(text: string, node: treeSitter.Node): TextPosition;
+}
+
+TextPosition.createByNode = function (text: string, node: treeSitter.Node): TextPosition {
+  return {
+    text: text,
+    startPosition: new vscode.Position(node.startPosition.row, node.startPosition.column),
+    endPosition: new vscode.Position(node.endPosition.row, node.endPosition.column),
+  };
+};
+
+

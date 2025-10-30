@@ -216,7 +216,7 @@ export class MappersStore {
       // get xml namespace
       const namespace = MyBatisUtils.getMapperNamespace(info);
       const hasMatchingNamespace = Array.from(this._xmlFiles.values()).some(
-        (xmlFile: XmlMapperInfo) => xmlFile.info.namespace === namespace
+        (xmlFile: XmlMapperInfo) => xmlFile.info.namespace?.text === namespace
       );
       if (!hasMatchingNamespace) {
         return false;
@@ -238,7 +238,7 @@ export class MappersStore {
     }
 
     let files: XmlMapperInfo[] = Array.from(this._xmlFiles.values()).filter(
-      (xmlFile: XmlMapperInfo) => xmlFile.info.namespace === namespace
+      (xmlFile: XmlMapperInfo) => xmlFile.info.namespace?.text === namespace
     );
     if (files.length <= 0) {
       return null;

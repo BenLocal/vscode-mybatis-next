@@ -1,16 +1,17 @@
 import * as treeSitter from "web-tree-sitter";
+import { TextPosition } from "./vscodeUtils";
 
 export interface MyBatisMapperInfo {
-  namespace?: string;
+  namespace?: TextPosition | null;
   sqlStatements: SqlStatementInfo[];
 }
 
 export interface SqlStatementInfo {
   type: "select" | "insert" | "update" | "delete";
-  id: string;
-  parameterType?: string;
-  resultType?: string;
-  resultMap?: string;
+  id?: TextPosition;
+  parameterType?: TextPosition;
+  resultType?: TextPosition;
+  resultMap?: TextPosition;
   startLine: number;
   startColumn: number;
   endLine: number;
@@ -64,7 +65,7 @@ export class XmlAnalyzer {
       treeSitter.Node,
       {
         tagName: string;
-        attributes: Map<string, string>;
+        attributes: Map<string, TextPosition>;
         elementNode: treeSitter.Node;
       }
     >();
@@ -73,7 +74,7 @@ export class XmlAnalyzer {
       let namespaceValue: string | undefined = undefined;
       let sqlElementNode: treeSitter.Node | null = null;
       let sqlTagName = "";
-      const sqlAttrs = new Map<string, string>();
+      const sqlAttrs = new Map<string, TextPosition>();
 
       // 处理每个 capture
       for (const capture of match.captures) {
@@ -84,7 +85,7 @@ export class XmlAnalyzer {
           case "namespace_value":
             namespaceValue = this.extractAttributeValue(node.text);
             if (namespaceValue) {
-              mapperInfo.namespace = namespaceValue;
+              mapperInfo.namespace = TextPosition.createByNode(namespaceValue, node);
             }
             break;
 
@@ -97,11 +98,13 @@ export class XmlAnalyzer {
             break;
 
           case "sql_attr_name":
-            const attrValue = this.findAttributeValueInMatch(match, node);
-            if (attrValue) {
-              sqlAttrs.set(node.text, this.extractAttributeValue(attrValue));
+            {
+              const attrValue = this.findAttributeValueInMatch(match, node);
+              if (attrValue) {
+                sqlAttrs.set(node.text, attrValue);
+              }
+              break;
             }
-            break;
 
           case "sql_attr_value":
             break;
@@ -113,17 +116,17 @@ export class XmlAnalyzer {
         sqlTagName &&
         ["select", "insert", "update", "delete"].includes(sqlTagName)
       ) {
-        if (!sqlElementsMap.has(sqlElementNode)) {
+        if (sqlElementsMap.has(sqlElementNode)) {
+          const existing = sqlElementsMap.get(sqlElementNode)!;
+          for (const [key, value] of sqlAttrs) {
+            existing.attributes.set(key, value);
+          }
+        } else {
           sqlElementsMap.set(sqlElementNode, {
             tagName: sqlTagName,
             attributes: new Map(sqlAttrs),
             elementNode: sqlElementNode,
           });
-        } else {
-          const existing = sqlElementsMap.get(sqlElementNode)!;
-          for (const [key, value] of sqlAttrs) {
-            existing.attributes.set(key, value);
-          }
         }
       }
     }
@@ -131,7 +134,7 @@ export class XmlAnalyzer {
     for (const [node, info] of sqlElementsMap) {
       const sqlStatement: SqlStatementInfo = {
         type: info.tagName as "select" | "insert" | "update" | "delete",
-        id: info.attributes.get("id") || "",
+        id: info.attributes.get("id") || undefined,
         parameterType: info.attributes.get("parameterType") || undefined,
         resultType: info.attributes.get("resultType") || undefined,
         resultMap: info.attributes.get("resultMap") || undefined,
@@ -160,16 +163,16 @@ export class XmlAnalyzer {
   private static findAttributeValueInMatch(
     match: treeSitter.QueryMatch,
     attrNameNode: treeSitter.Node
-  ): string | null {
+  ): TextPosition | null {
     const parent = attrNameNode.parent;
-    if (!parent || parent.type !== "Attribute") {
+    if (parent?.type !== "Attribute") {
       return null;
     }
 
     for (let i = 0; i < parent.childCount; i++) {
       const child = parent.child(i);
-      if (child && child.type === "AttValue") {
-        return child.text;
+      if (child?.type === "AttValue") {
+        return TextPosition.createByNode(child.text, child);
       }
     }
 

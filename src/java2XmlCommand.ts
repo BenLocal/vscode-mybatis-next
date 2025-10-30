@@ -28,7 +28,7 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
           return;
         }
         const sqlStatement = xmlFile.info.sqlStatements.find(
-          (sqlStatement) => sqlStatement.id === methodName
+          (sqlStatement) => sqlStatement.id?.text === methodName
         );
 
         const fileUri = MyBatisUtils.getFilePath(xmlFile.file);

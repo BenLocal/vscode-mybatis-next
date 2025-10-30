@@ -224,11 +224,19 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
         sqlStatement.startLine,
         sqlStatement.startColumn
       );
+      const idText = sqlStatement.id?.text || "";
+      const resultTypeText = sqlStatement.resultType?.text || "";
+      const parameterTypeText = sqlStatement.parameterType?.text || "";
+      const resultMapText = sqlStatement.resultMap?.text || "";
+      const tooltip = `id: ${idText}
+resultType: ${resultTypeText}
+parameterType: ${parameterTypeText}
+resultMap: ${resultMapText}`;
       const codeLens = new vscode.CodeLens(
         new vscode.Range(position, position),
         {
-          title: `🚀 Java Mapper(${sqlStatement.id})`,
-          tooltip: `SQL: ${sqlStatement.id}`,
+          title: `🚀 Java Mapper(${idText})`,
+          tooltip,
           command: "mybatis-next.xml2Java",
           arguments: [xmlFilePath, mapperInfo.namespace, sqlStatement.id],
         }

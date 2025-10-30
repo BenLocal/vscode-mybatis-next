@@ -27,6 +27,14 @@ export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
         );
         return [];
       }
+
+      const classSymbolLocations = await this.findClassSymbolLocations(
+        document.getText(range)
+      );
+      if (classSymbolLocations.length > 0) {
+        return classSymbolLocations;
+      }
+
       const javaApi = javaExtension.exports;
 
       // test
@@ -35,7 +43,8 @@ export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
         textDocument: { uri: fileUri.toString() },
         position: { line: 15, character: 8 },
       };
-      const javaResults: GoToDefinitionResponse = await javaApi?.goToDefinition?.(request);
+      const javaResults: GoToDefinitionResponse =
+        await javaApi?.goToDefinition?.(request);
 
       return this.normalizeDefinition(javaResults, range);
     } catch (error) {
@@ -60,7 +69,7 @@ export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
       const uri = vscode.Uri.parse(resp.uri.toString());
       const range = new vscode.Range(
         new vscode.Position(resp.range.start.line, resp.range.start.character),
-        new vscode.Position(resp.range.end.line, resp.range.end.character),
+        new vscode.Position(resp.range.end.line, resp.range.end.character)
       );
       const ll: vscode.LocationLink = {
         targetUri: uri,
@@ -79,8 +88,11 @@ export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
         if (Location.is(item)) {
           const uri = vscode.Uri.parse(item.uri.toString());
           const range = new vscode.Range(
-            new vscode.Position(item.range.start.line, item.range.start.character),
-            new vscode.Position(item.range.end.line, item.range.end.character),
+            new vscode.Position(
+              item.range.start.line,
+              item.range.start.character
+            ),
+            new vscode.Position(item.range.end.line, item.range.end.character)
           );
           return {
             targetUri: uri,
@@ -93,19 +105,37 @@ export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
           let originSelectionRange = null;
           if (item.originSelectionRange) {
             originSelectionRange = new vscode.Range(
-              new vscode.Position(item.originSelectionRange.start.line, item.originSelectionRange.start.character),
-              new vscode.Position(item.originSelectionRange.end.line, item.originSelectionRange.end.character),
+              new vscode.Position(
+                item.originSelectionRange.start.line,
+                item.originSelectionRange.start.character
+              ),
+              new vscode.Position(
+                item.originSelectionRange.end.line,
+                item.originSelectionRange.end.character
+              )
             );
           }
           const targetRange = new vscode.Range(
-            new vscode.Position(item.targetRange.start.line, item.targetRange.start.character),
-            new vscode.Position(item.targetRange.end.line, item.targetRange.end.character),
+            new vscode.Position(
+              item.targetRange.start.line,
+              item.targetRange.start.character
+            ),
+            new vscode.Position(
+              item.targetRange.end.line,
+              item.targetRange.end.character
+            )
           );
           let targetSelectionRange = null;
           if (item.targetSelectionRange) {
             targetSelectionRange = new vscode.Range(
-              new vscode.Position(item.targetSelectionRange.start.line, item.targetSelectionRange.start.character),
-              new vscode.Position(item.targetSelectionRange.end.line, item.targetSelectionRange.end.character),
+              new vscode.Position(
+                item.targetSelectionRange.start.line,
+                item.targetSelectionRange.start.character
+              ),
+              new vscode.Position(
+                item.targetSelectionRange.end.line,
+                item.targetSelectionRange.end.character
+              )
             );
           }
           return {
@@ -119,5 +149,29 @@ export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
     }
 
     return [];
+  }
+
+  private async findClassSymbolLocations(
+    fullClassName: string
+  ): Promise<vscode.Location[]> {
+    const symbols = await vscode.commands.executeCommand<
+      vscode.SymbolInformation[]
+    >("vscode.executeWorkspaceSymbolProvider", fullClassName);
+
+    if (!symbols || symbols.length === 0) return [];
+
+    // 优先完整匹配：包名.类名
+    const exact = symbols.find((sym) => {
+      const container = sym.containerName ?? "";
+      const full = container ? `${container}.${sym.name}` : sym.name;
+      return full === fullClassName && sym.kind === vscode.SymbolKind.Class;
+    });
+
+    if (exact?.location) return [exact.location];
+
+    // 退化为类名匹配
+    return symbols
+      .filter((sym) => sym.name === fullClassName)
+      .map((sym) => sym.location);
   }
 }

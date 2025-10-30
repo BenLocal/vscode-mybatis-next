@@ -37,6 +37,9 @@
     "LICENSE.md",
     "icon.png"
   ],
+  "extensionDependencies": [
+    "redhat.java"
+  ],
   "contributes": {
     "configuration": [
       {

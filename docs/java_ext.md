@@ -9,24 +9,26 @@
 ```typescript
 const javaExtension = vscode.extensions.getExtension("redhat.java");
 if (!javaExtension?.isActive) {
-    OutputLogger.warn(
-        "Java extension (redhat.java) is not available. Please install Java Extension Pack.",
-        "XML_TYPE_DEFINITION"
-    );
-    return [];
+  OutputLogger.warn(
+    "Java extension (redhat.java) is not available. Please install Java Extension Pack.",
+    "XML_TYPE_DEFINITION"
+  );
+  return [];
 }
 
 const javaApi = javaExtension.exports;
 const fileUri = vscode.Uri.file("xxx.java");
 const request = {
-textDocument: { uri: fileUri.toString() },
-position: { line: 15, character: 8 },
+  textDocument: { uri: fileUri.toString() },
+  position: { line: 15, character: 8 },
 };
-const javaResults: GoToDefinitionResponse =
-await javaApi?.goToDefinition?.(request);
+const javaResults: GoToDefinitionResponse = await javaApi?.goToDefinition?.(
+  request
+);
 
 return normalizeDefinition(javaResults, range);
 ```
+
 - normalize.ts
 
 ```typescript

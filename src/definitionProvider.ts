@@ -1,8 +1,5 @@
 import * as vscode from "vscode";
 import { OutputLogger } from "./outputLogs";
-import { Location, LocationLink } from "vscode-languageserver-types";
-
-type GoToDefinitionResponse = Location | Location[] | LocationLink[] | null;
 
 export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
   async provideDefinition(

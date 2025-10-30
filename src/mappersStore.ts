@@ -3,9 +3,9 @@ import { ParserManager } from "./parserManager";
 import { MyBatisMapperInfo, XmlAnalyzer } from "./xmlAnalyzer";
 import { JavaAnalyzer, JavaClassInfo } from "./javaAnalyzer";
 import * as treeSitter from "web-tree-sitter";
-import { MyBatisUtils } from "./mybatisUtils";
 import { OutputLogger } from "./outputLogs";
 import { TwoWayMap } from "./twoWayMap";
+import { VscodeUtils } from "./vscodeUtils";
 
 export interface JavaMapperInfo {
   file: vscode.Uri | string;
@@ -62,11 +62,11 @@ export class MappersStore {
       return null;
     }
     const content = doc.getText();
-    const contextHash = await MyBatisUtils.calculateContextHash(content);
+    const contextHash = await VscodeUtils.calculateContextHash(content);
     // check if the file is already in the _xmlFiles
-    const filePath = MyBatisUtils.getFilePath(file);
+    const filePath = VscodeUtils.getFilePath(file);
     const xmlMapperInfo = this._xmlFiles.get(filePath);
-    if (xmlMapperInfo && xmlMapperInfo.context_hash === contextHash) {
+    if (xmlMapperInfo?.context_hash === contextHash) {
       return xmlMapperInfo;
     }
 
@@ -101,13 +101,13 @@ export class MappersStore {
   }
 
   public async removeXmlFile(file: vscode.Uri | string): Promise<void> {
-    const filePath = MyBatisUtils.getFilePath(file);
+    const filePath = VscodeUtils.getFilePath(file);
     this._xmlFiles.delete(filePath);
     this._bestMapper.removeValue(filePath);
   }
 
   public async removeJavaFile(file: vscode.Uri | string): Promise<void> {
-    const filePath = MyBatisUtils.getFilePath(file);
+    const filePath = VscodeUtils.getFilePath(file);
     this._javaFiles.delete(filePath);
     this._bestMapper.removeKey(filePath);
   }
@@ -122,10 +122,10 @@ export class MappersStore {
   private hasMybatisDoctypeDeclaration(rootNode: treeSitter.Node): boolean {
     for (let i = 0; i < rootNode.childCount; i++) {
       const child = rootNode.child(i);
-      if (MyBatisUtils.treeSitterTypeIs(child, "prolog")) {
+      if (VscodeUtils.treeSitterTypeIs(child, "prolog")) {
         for (let j = 0; j < child!.childCount; j++) {
           const doctypeChild = child!.child(j);
-          if (MyBatisUtils.treeSitterTypeIs(doctypeChild, "doctypedecl")) {
+          if (VscodeUtils.treeSitterTypeIs(doctypeChild, "doctypedecl")) {
             const doctypeText = doctypeChild!.text;
             if (
               doctypeText.includes("mybatis.org") &&
@@ -149,10 +149,10 @@ export class MappersStore {
     }
 
     const content = doc.getText();
-    const filePath = MyBatisUtils.getFilePath(file);
-    const contextHash = await MyBatisUtils.calculateContextHash(content);
+    const filePath = VscodeUtils.getFilePath(file);
+    const contextHash = await VscodeUtils.calculateContextHash(content);
     const javaMapperInfo = this._javaFiles.get(filePath);
-    if (javaMapperInfo && javaMapperInfo.context_hash === contextHash) {
+    if (javaMapperInfo?.context_hash === contextHash) {
       return javaMapperInfo;
     }
 
@@ -214,7 +214,7 @@ export class MappersStore {
 
     if (!importMybatis) {
       // get xml namespace
-      const namespace = MyBatisUtils.getMapperNamespace(info);
+      const namespace = VscodeUtils.getMapperNamespace(info);
       const hasMatchingNamespace = Array.from(this._xmlFiles.values()).some(
         (xmlFile: XmlMapperInfo) => xmlFile.info.namespace?.text === namespace
       );
@@ -246,10 +246,10 @@ export class MappersStore {
 
     const sortedFiles = files
       .map((file): { file: XmlMapperInfo; distance: number } => {
-        const filePath = MyBatisUtils.getFilePath(file.file);
+        const filePath = VscodeUtils.getFilePath(file.file);
         return {
           file: file,
-          distance: MyBatisUtils.filePathDistance(filePath, javaFilePath),
+          distance: VscodeUtils.filePathDistance(filePath, javaFilePath),
         };
       })
       .filter((file) => file.distance >= 0)
@@ -257,7 +257,7 @@ export class MappersStore {
     const bestXmlFile = sortedFiles.length > 0 ? sortedFiles[0].file : files[0];
     this._bestMapper.onlyAddKey(
       javaFilePath,
-      MyBatisUtils.getFilePath(bestXmlFile.file)
+      VscodeUtils.getFilePath(bestXmlFile.file)
     );
     return bestXmlFile;
   }
@@ -274,7 +274,7 @@ export class MappersStore {
     }
     let files: JavaMapperInfo[] = Array.from(this._javaFiles.values()).filter(
       (javaFile: JavaMapperInfo) =>
-        MyBatisUtils.getMapperNamespace(javaFile.info) === namespace
+        VscodeUtils.getMapperNamespace(javaFile.info) === namespace
     );
     if (files.length <= 0) {
       return null;
@@ -282,10 +282,10 @@ export class MappersStore {
 
     const sortedFiles = files
       .map((file): { file: JavaMapperInfo; distance: number } => {
-        const filePath = MyBatisUtils.getFilePath(file.file);
+        const filePath = VscodeUtils.getFilePath(file.file);
         return {
           file: file,
-          distance: MyBatisUtils.filePathDistance(filePath, xmlFilePath),
+          distance: VscodeUtils.filePathDistance(filePath, xmlFilePath),
         };
       })
       .filter((file) => file.distance >= 0)
@@ -295,7 +295,7 @@ export class MappersStore {
       sortedFiles.length > 0 ? sortedFiles[0].file : files[0];
     this._bestMapper.onlyAddValue(
       xmlFilePath,
-      MyBatisUtils.getFilePath(bestJavaFile.file)
+      VscodeUtils.getFilePath(bestJavaFile.file)
     );
     return bestJavaFile;
   }

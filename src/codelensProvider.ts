@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
-import { MyBatisUtils } from "./mybatisUtils";
 import { OutputLogger } from "./outputLogs";
 import { JavaMethodInfo } from "./javaAnalyzer";
+import { VscodeUtils } from "./vscodeUtils";
 
 export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
   private readonly _onDidChangeCodeLenses: vscode.EventEmitter<void> =
@@ -22,13 +22,13 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
 
     const startTime = performance.now();
     const uri = document.uri;
-    const javaFilePath = MyBatisUtils.getFilePath(uri);
+    const javaFilePath = VscodeUtils.getFilePath(uri);
     const info = await MappersStore.getInstance().addJavaFile(uri, document);
     if (!info) {
       return [];
     }
     const classInfo = info.info;
-    const namespace = MyBatisUtils.getMapperNamespace(classInfo);
+    const namespace = VscodeUtils.getMapperNamespace(classInfo);
     const classPosition = classInfo.classPosition;
     const position = new vscode.Position(
       classPosition.startLine,
@@ -201,7 +201,7 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
 
     const startTime = performance.now();
     const uri = document.uri;
-    const xmlFilePath = MyBatisUtils.getFilePath(uri);
+    const xmlFilePath = VscodeUtils.getFilePath(uri);
     const info = await MappersStore.getInstance().addXmlFile(uri, document);
     if (!info) {
       return [];

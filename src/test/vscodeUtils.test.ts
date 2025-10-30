@@ -1,24 +1,25 @@
 import * as assert from "assert";
-import { MyBatisUtils } from "../mybatisUtils";
+import { VscodeUtils } from "../vscodeUtils";
 
-suite("MybatisUtils Test Suite", () => {
+
+suite("VscodeUtils Test Suite", () => {
   test("filePathDistance", () => {
     assert.strictEqual(
-      MyBatisUtils.filePathDistance(
+      VscodeUtils.filePathDistance(
         "src/test/testUtils.test.ts",
         "src/test/testUtils.test.ts"
       ),
       0
     );
     assert.strictEqual(
-      MyBatisUtils.filePathDistance(
+      VscodeUtils.filePathDistance(
         "src/test/testUtils.test.ts",
         "src/test/A/B/testUtils.test.ts"
       ),
       2
     );
     assert.strictEqual(
-      MyBatisUtils.filePathDistance(
+      VscodeUtils.filePathDistance(
         "src/test/A/B/testUtils.test.ts",
         "src/test/testUtils.test.ts"
       ),
@@ -26,7 +27,7 @@ suite("MybatisUtils Test Suite", () => {
     );
 
     assert.strictEqual(
-      MyBatisUtils.filePathDistance(
+      VscodeUtils.filePathDistance(
         "src/test/A/B/testUtils.test.ts",
         "src/test/C/B/testUtils.test.ts"
       ),

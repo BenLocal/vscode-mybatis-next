@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
-import { MyBatisUtils } from "./mybatisUtils";
 import { VscodeUtils } from "./vscodeUtils";
 
 export function registerXml2JavaCommands(context: vscode.ExtensionContext) {
@@ -47,7 +46,7 @@ export function registerXml2JavaCommands(context: vscode.ExtensionContext) {
           return;
         }
 
-        const fileUri = MyBatisUtils.getFilePath(javaFile.file);
+        const fileUri = VscodeUtils.getFilePath(javaFile.file);
         const javaDocument = await vscode.workspace.openTextDocument(fileUri);
         const javaEditor = await vscode.window.showTextDocument(javaDocument);
         await VscodeUtils.ensurePositionVisible(javaEditor, startPosition);

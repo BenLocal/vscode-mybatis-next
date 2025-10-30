@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
-import { MyBatisUtils } from "./mybatisUtils";
 import { VscodeUtils } from "./vscodeUtils";
 import { OutputLogger } from "./outputLogs";
 
@@ -31,7 +30,7 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
           (sqlStatement) => sqlStatement.id?.text === methodName
         );
 
-        const fileUri = MyBatisUtils.getFilePath(xmlFile.file);
+        const fileUri = VscodeUtils.getFilePath(xmlFile.file);
         const xmlDocument = await vscode.workspace.openTextDocument(fileUri);
         const xmlEditor = await vscode.window.showTextDocument(xmlDocument);
         if (!sqlStatement) {
@@ -114,42 +113,6 @@ async function promptToAddXmlContent(
     }
   }
 
-  function generateXmlTemplate(methodName: string, returnType: string): string {
-    const methodNameLower = methodName.toLowerCase();
-    let resultType = "";
-    if (returnType) {
-      resultType = ` resultType="${returnType.trim()}"`;
-    }
-    if (
-      methodNameLower.startsWith("insert") ||
-      methodNameLower.startsWith("add") ||
-      methodNameLower.startsWith("create")
-    ) {
-      return `    <insert id = "${methodName}"${resultType}>
-    </insert>
-`;
-    } else if (
-      methodNameLower.startsWith("update") ||
-      methodNameLower.startsWith("modify") ||
-      methodNameLower.startsWith("edit")
-    ) {
-      return `    <update id = "${methodName}"${resultType}>
-    </update>
-`;
-    } else if (
-      methodNameLower.startsWith("delete") ||
-      methodNameLower.startsWith("remove")
-    ) {
-      return `    <delete id="${methodName}"${resultType}>
-    </delete>
-`;
-    } else {
-      return `    <select id = "${methodName}"${resultType}>
-    </select>
-`;
-    }
-  }
-
   function findBestInsertPosition(
     document: vscode.TextDocument
   ): vscode.Position | null {
@@ -167,6 +130,42 @@ async function promptToAddXmlContent(
   }
 }
 
+function generateXmlTemplate(methodName: string, returnType: string): string {
+  const methodNameLower = methodName.toLowerCase();
+  let resultType = "";
+  if (returnType) {
+    resultType = ` resultType="${returnType.trim()}"`;
+  }
+  if (
+    methodNameLower.startsWith("insert") ||
+    methodNameLower.startsWith("add") ||
+    methodNameLower.startsWith("create")
+  ) {
+    return `    <insert id = "${methodName}"${resultType}>
+    </insert>
+`;
+  } else if (
+    methodNameLower.startsWith("update") ||
+    methodNameLower.startsWith("modify") ||
+    methodNameLower.startsWith("edit")
+  ) {
+    return `    <update id = "${methodName}"${resultType}>
+    </update>
+`;
+  } else if (
+    methodNameLower.startsWith("delete") ||
+    methodNameLower.startsWith("remove")
+  ) {
+    return `    <delete id="${methodName}"${resultType}>
+    </delete>
+`;
+  } else {
+    return `    <select id = "${methodName}"${resultType}>
+    </select>
+`;
+  }
+}
+
 async function jumpToXmlStartPosition(javaFilePath: string, namespace: string) {
   const xmlFile = MappersStore.getInstance().selectBestXmlFile(
     javaFilePath,
@@ -176,7 +175,7 @@ async function jumpToXmlStartPosition(javaFilePath: string, namespace: string) {
     await promptToCreateXmlFile(javaFilePath, namespace);
     return;
   }
-  const fileUri = MyBatisUtils.getFilePath(xmlFile.file);
+  const fileUri = VscodeUtils.getFilePath(xmlFile.file);
   const xmlDocument = await vscode.workspace.openTextDocument(fileUri);
   const xmlEditor = await vscode.window.showTextDocument(xmlDocument);
   const startPosition = new vscode.Position(0, 0);

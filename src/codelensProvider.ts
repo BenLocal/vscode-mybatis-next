@@ -207,11 +207,12 @@ export class XmlMapperCodelensProvider implements vscode.CodeLensProvider {
       return [];
     }
     const mapperInfo = info.info;
+    const namespaceText = mapperInfo.namespace?.text || "";
     const position = new vscode.Position(0, 0);
     const codeLens = new vscode.CodeLens(new vscode.Range(position, position), {
       title: `🚀 Java Mapper`,
       command: "mybatis-next.xml2Java",
-      arguments: [xmlFilePath, mapperInfo.namespace, null],
+      arguments: [xmlFilePath, namespaceText, null],
     });
 
     const codeLenses: vscode.CodeLens[] = [];
@@ -238,7 +239,7 @@ resultMap: ${resultMapText}`;
           title: `🚀 Java Mapper(${idText})`,
           tooltip,
           command: "mybatis-next.xml2Java",
-          arguments: [xmlFilePath, mapperInfo.namespace, sqlStatement.id],
+          arguments: [xmlFilePath, namespaceText, idText],
         }
       );
 

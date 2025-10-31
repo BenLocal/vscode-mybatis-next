@@ -25,7 +25,7 @@ export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
         return [];
       }
 
-      const classSymbolLocations = await this.findClassSymbolLocations(
+      const classSymbolLocations = await this.findWorkspaceSymbolLocations(
         document.getText(range)
       );
       if (classSymbolLocations.length > 0) {
@@ -49,30 +49,67 @@ export class XmlTypeDefinitionProvider implements vscode.DefinitionProvider {
     }
   }
 
-  private async findClassSymbolLocations(
+  private async findWorkspaceSymbolLocations(
     fullClassName: string
   ): Promise<vscode.Location[]> {
+    const className = fullClassName.split(".").pop()!;
     const symbols = await vscode.commands.executeCommand<
       vscode.SymbolInformation[]
-    >("vscode.executeWorkspaceSymbolProvider", fullClassName);
+    >("vscode.executeWorkspaceSymbolProvider", className);
 
     if (!symbols || symbols.length === 0) {
       return [];
     }
 
-    const exact = symbols.find((sym) => {
+    const locations = await Promise.all(symbols.map(async (sym) => {
       const container = sym.containerName ?? "";
       const full = container ? `${container}.${sym.name}` : sym.name;
-      return full === fullClassName && sym.kind === vscode.SymbolKind.Class;
-    });
+      if (full !== fullClassName) {
+        return undefined;
+      }
 
-    if (exact?.location) {
-      return [exact.location];
+      const doucmentLocation = await this.findDocumentSymbolLocations(sym);
+      if (doucmentLocation) {
+        return doucmentLocation;
+      }
+
+      return undefined;
+    }));
+
+    const exactLocations: vscode.Location[] = locations.filter(
+      (location): location is vscode.Location => location !== undefined && location !== null
+    );
+
+    return exactLocations;
+  }
+
+  private async findDocumentSymbolLocations(
+    targetSymbol: vscode.SymbolInformation,
+  ): Promise<vscode.Location | undefined> {
+    const symbols = await vscode.commands.executeCommand<
+      vscode.DocumentSymbol[]
+    >("vscode.executeDocumentSymbolProvider", targetSymbol.location.uri);
+    if (!symbols || symbols.length === 0) {
+      return;
     }
 
-    // 退化为类名匹配
-    return symbols
-      .filter((sym) => sym.name === fullClassName)
-      .map((sym) => sym.location);
+    const exactLocation: vscode.DocumentSymbol | undefined = symbols.find((sym) => {
+      return sym.kind === targetSymbol.kind && sym.name === targetSymbol.name;
+    });
+
+    if (!exactLocation) {
+      return;
+    }
+
+    const start = exactLocation.selectionRange.start ?? exactLocation.range.start;
+    const end = exactLocation.selectionRange.end ?? exactLocation.range.end;
+    if (!start || !end) {
+      return;
+    }
+
+    return exactLocation ? {
+      uri: targetSymbol.location.uri,
+      range: new vscode.Range(start, end),
+    } : undefined;
   }
 }

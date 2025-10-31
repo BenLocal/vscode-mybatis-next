@@ -172,7 +172,7 @@ export class XmlAnalyzer {
     for (let i = 0; i < parent.childCount; i++) {
       const child = parent.child(i);
       if (child?.type === "AttValue") {
-        return TextPosition.createByNode(child.text, child);
+        return TextPosition.createByNode(this.extractAttributeValue(child.text), child);
       }
     }
 

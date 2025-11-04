@@ -22,8 +22,9 @@ export class MybatisFileSystemWatcher {
           "FILE_WATCHER"
         );
       } catch (error) {
-        OutputLogger.error(
-          `Error processing new Java file: ${error}`,
+        OutputLogger.errorWithStackTrace(
+          `Error processing new Java file`,
+          error as Error,
           "FILE_WATCHER"
         );
       }
@@ -33,8 +34,9 @@ export class MybatisFileSystemWatcher {
       try {
         await MappersStore.getInstance().removeJavaFile(uri);
       } catch (error) {
-        OutputLogger.error(
-          `Error processing deleted Java file: ${error}`,
+        OutputLogger.errorWithStackTrace(
+          `Error processing deleted Java file`,
+          error as Error,
           "FILE_WATCHER"
         );
       }
@@ -46,8 +48,9 @@ export class MybatisFileSystemWatcher {
         const document = await vscode.workspace.openTextDocument(uri);
         await MappersStore.getInstance().addXmlFile(uri, document);
       } catch (error) {
-        OutputLogger.error(
-          `Error processing new XML file: ${error}`,
+        OutputLogger.errorWithStackTrace(
+          `Error processing new XML file`,
+          error as Error,
           "FILE_WATCHER"
         );
       }
@@ -58,8 +61,9 @@ export class MybatisFileSystemWatcher {
       try {
         await MappersStore.getInstance().removeXmlFile(uri);
       } catch (error) {
-        OutputLogger.error(
-          `Error processing deleted XML file: ${error}`,
+        OutputLogger.errorWithStackTrace(
+          `Error processing deleted XML file`,
+          error as Error,
           "FILE_WATCHER"
         );
       }

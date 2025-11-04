@@ -24,6 +24,10 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
           namespace
         );
         if (!xmlFile) {
+          OutputLogger.info(
+            `No XML file found for ${javaFilePath} with namespace ${namespace}`,
+            "JAVA2XML"
+          );
           return;
         }
         const sqlStatement = xmlFile.info.sqlStatements.find(
@@ -48,7 +52,11 @@ export function registerJava2XmlCommands(context: vscode.ExtensionContext) {
         );
         await VscodeUtils.ensurePositionVisible(xmlEditor, startPosition);
       } catch (error) {
-        console.error(`Error opening XML file:`, error);
+        OutputLogger.errorWithStackTrace(
+          `Error opening XML file`,
+          error as Error,
+          "JAVA2XML"
+        );
       }
     }
   );
@@ -257,7 +265,11 @@ async function createNewXmlMapperFile(javaFilePath: string, namespace: string) {
     await VscodeUtils.ensurePositionVisible(editor, startPosition);
     await MappersStore.getInstance().addXmlFile(fileUri, document);
   } catch (error) {
-    console.error("Error creating XML mapper file:", error);
+    OutputLogger.errorWithStackTrace(
+      `Error creating XML mapper file`,
+      error as Error,
+      "JAVA2XML"
+    );
     vscode.window.showErrorMessage(
       `Failed to create XML mapper file: ${error}`
     );

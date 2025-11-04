@@ -74,7 +74,7 @@ export class ParserManager {
 
   parseJava(filePath: string, content: string): treeSitter.Tree | null {
     if (!this.javaParser) {
-      console.error("Java language not initialized");
+      OutputLogger.error("Java language not initialized");
       return null;
     }
 
@@ -94,7 +94,7 @@ export class ParserManager {
 
   parseXml(filePath: string, content: string): treeSitter.Tree | null {
     if (!this.xmlTreeParser) {
-      console.error("XML language not initialized");
+      OutputLogger.error("XML language not initialized");
       return null;
     }
 

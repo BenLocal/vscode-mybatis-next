@@ -159,7 +159,10 @@ export async function scanWorkspaceFiles() {
                 );
               }
             } catch (error) {
-              console.error(`Error parsing Java file ${file.fsPath}:`, error);
+              OutputLogger.errorWithStackTrace(
+                `Error parsing Java file ${file.fsPath}`,
+                error as Error
+              );
             } finally {
               processedFiles++;
               progress.report({
@@ -173,6 +176,10 @@ export async function scanWorkspaceFiles() {
       }
     );
   } catch (error) {
-    console.error(error);
+    OutputLogger.errorWithStackTrace(
+      `Error scanning workspace files`,
+      error as Error,
+      "SCAN_WORKSPACE"
+    );
   }
 }

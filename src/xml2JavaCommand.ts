@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import { MappersStore } from "./mappersStore";
 import { VscodeUtils } from "./vscodeUtils";
+import { OutgoingMessage } from "http";
+import { OutputLogger } from "./outputLogs";
 
 export function registerXml2JavaCommands(context: vscode.ExtensionContext) {
   const disposable = vscode.commands.registerCommand(
@@ -51,7 +53,10 @@ export function registerXml2JavaCommands(context: vscode.ExtensionContext) {
         const javaEditor = await vscode.window.showTextDocument(javaDocument);
         await VscodeUtils.ensurePositionVisible(javaEditor, startPosition);
       } catch (error) {
-        console.error(`Error opening XML file:`, error);
+        OutputLogger.errorWithStackTrace(
+          `Error going to java file: ${xmlFilePath}`,
+          error as Error
+        );
       }
     }
   );

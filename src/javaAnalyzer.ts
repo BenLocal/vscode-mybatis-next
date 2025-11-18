@@ -20,6 +20,7 @@ export interface JavaMethodInfo {
   returnType?: string;
   parameters: string[];
   parameterStr: string;
+  isDefault: boolean;
   isStatic: boolean;
   isPublic: boolean;
   isPrivate: boolean;
@@ -110,6 +111,7 @@ export class JavaAnalyzer {
       name: "",
       parameters: [],
       parameterStr: "",
+      isDefault: false,
       isStatic: false,
       isPublic: false,
       isPrivate: false,
@@ -120,6 +122,7 @@ export class JavaAnalyzer {
       endLine: 0,
       endColumn: 0,
       returnType: "",
+
     };
 
     let methodNode: treeSitter.Node | null = null;
@@ -161,25 +164,30 @@ export class JavaAnalyzer {
           info.classAnnotations.push(node.text);
           break;
         case "method_decl":
-          methodNode = node;
-          methodInfo.startLine = node.startPosition.row;
-          methodInfo.startColumn = node.startPosition.column;
-          methodInfo.endLine = node.endPosition.row;
-          methodInfo.endColumn = node.endPosition.column;
-          break;
+          {
+            methodNode = node;
+            methodInfo.startLine = node.startPosition.row;
+            methodInfo.startColumn = node.startPosition.column;
+            methodInfo.endLine = node.endPosition.row;
+            methodInfo.endColumn = node.endPosition.column;
+            break;
+          }
         case "method_modifiers":
-          const modifiers = this.extractJavaMethodModifiers(capture.node);
-          if (modifiers.includes("default") || modifiers.includes("static")) {
-            return;
+          {
+            const modifiers = this.extractJavaMethodModifiers(capture.node);
+            methodInfo.isDefault = modifiers.includes("default");
+            methodInfo.isStatic = modifiers.includes("static");
+            break;
           }
-          break;
         case "method_return":
-          let returnType = capture.node.text.trim();
-          if (returnType === "void" || capture.node.type === "void_type") {
-            returnType = "void";
+          {
+            let returnType = capture.node.text.trim();
+            if (returnType === "void" || capture.node.type === "void_type") {
+              returnType = "void";
+            }
+            methodInfo.returnType = returnType;
+            break;
           }
-          methodInfo.returnType = returnType;
-          break;
         case "method_name":
           methodInfo.name = node.text;
           break;
@@ -203,7 +211,7 @@ export class JavaAnalyzer {
     if (node.type === "modifiers") {
       for (let i = 0; i < node.childCount; i++) {
         const child = node.child(i);
-        if (child && child.type === "modifier") {
+        if (child) {
           modifiers.push(child.text.trim());
         }
       }

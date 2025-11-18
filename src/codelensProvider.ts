@@ -48,6 +48,9 @@ export class JavaMapperCodelensProvider implements vscode.CodeLensProvider {
     }
 
     for (const method of classInfo.methods) {
+      if (method.isDefault || method.isStatic) {
+        continue;
+      }
       const position = new vscode.Position(
         method.startLine,
         method.startColumn

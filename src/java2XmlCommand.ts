@@ -140,16 +140,12 @@ async function promptToAddXmlContent(
 
 function generateXmlTemplate(methodName: string, returnType: string): string {
   const methodNameLower = methodName.toLowerCase();
-  let resultType = "";
-  if (returnType) {
-    resultType = ` resultType="${returnType.trim()}"`;
-  }
   if (
     methodNameLower.startsWith("insert") ||
     methodNameLower.startsWith("add") ||
     methodNameLower.startsWith("create")
   ) {
-    return `    <insert id = "${methodName}"${resultType}>
+    return `    <insert id = "${methodName}">
     </insert>
 `;
   } else if (
@@ -157,17 +153,21 @@ function generateXmlTemplate(methodName: string, returnType: string): string {
     methodNameLower.startsWith("modify") ||
     methodNameLower.startsWith("edit")
   ) {
-    return `    <update id = "${methodName}"${resultType}>
+    return `    <update id = "${methodName}">
     </update>
 `;
   } else if (
     methodNameLower.startsWith("delete") ||
     methodNameLower.startsWith("remove")
   ) {
-    return `    <delete id="${methodName}"${resultType}>
+    return `    <delete id="${methodName}">
     </delete>
 `;
   } else {
+    let resultType = "";
+    if (returnType) {
+      resultType = ` resultType="${returnType.trim()}"`;
+    }
     return `    <select id = "${methodName}"${resultType}>
     </select>
 `;
